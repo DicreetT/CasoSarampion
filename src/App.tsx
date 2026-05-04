@@ -198,6 +198,8 @@ export default function App() {
 
   const currentOutcome = state.outcome;
   const selectedTab = state.selectedTab;
+  const contagionOpacity = state.flags.isolated ? 0 : Math.min(0.95, state.hidden.outbreakRisk / 5);
+  const contagionActive = contagionOpacity > 0.04;
 
   return (
     <div className="appShell">
@@ -238,10 +240,21 @@ export default function App() {
           </div>
 
           <div className="stretcherStage">
+            {contagionActive && (
+              <div className="contagionBackdrop" aria-hidden="true" style={{ opacity: contagionOpacity }}>
+                <span className="contagionSilhouette contagionSilhouette--one" />
+                <span className="contagionSilhouette contagionSilhouette--two" />
+                <span className="contagionSilhouette contagionSilhouette--three" />
+                <span className="contagionSilhouette contagionSilhouette--four" />
+                <span className="contagionParticle contagionParticle--one" />
+                <span className="contagionParticle contagionParticle--two" />
+                <span className="contagionParticle contagionParticle--three" />
+              </div>
+            )}
             <div className="stretcherShadow" />
             <div className="stretcherRail stretcherRail--top" />
             <div className="stretcherRail stretcherRail--bottom" />
-            <div className="patientFigure">
+            <div className={`patientFigure ${state.visualState === "respiratory distress" ? "breathingFast" : ""}`}>
               <div className="patientFigure__head" />
               <div className="patientFigure__torso">
                 <span className="patientFigure__pulse" />
@@ -271,6 +284,7 @@ export default function App() {
               <span>Paciente monitorizado</span>
               <strong>{state.visualState.replace("respiratory distress", "distress")}</strong>
             </div>
+            <div className="monitorAlarm" aria-hidden="true" />
             <div className="monitorWave" />
             <div className="vitalsGrid">
               <VitalPill label="HR" value={`${state.vitals.hr} bpm`} tone="neutral" />
