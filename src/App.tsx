@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   applyChoice,
   createInitialState,
@@ -43,6 +44,18 @@ const supportOptions: Array<{ key: SupportKey; label: string; help: string }> = 
 ];
 
 const initialState = createInitialState();
+
+const fadeUp = {
+  initial: { opacity: 0, y: 18 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.45 },
+};
+
+const tapFeedback = {
+  whileTap: { scale: 0.985 },
+  whileHover: { y: -2 },
+  transition: { duration: 0.18 },
+};
 
 const progressColor = (value: number, max: number) => {
   const ratio = value / max;
@@ -92,12 +105,21 @@ const VitalPill = ({ label, value, tone = "neutral" }: { label: string; value: s
 
 const PatientIllustration = ({ state }: { state: GameState }) => {
   const svgState = state.visualState;
+  const breathingMotion =
+    svgState === "critical"
+      ? { y: [0, -2, 0], scale: [1, 1.01, 1], rotate: [0, 0.25, -0.25, 0] }
+      : svgState === "respiratory distress"
+        ? { y: [0, -3, 0], scale: [1, 1.013, 1] }
+        : { y: [0, -2, 0], scale: [1, 1.008, 1] };
+
   return (
-    <svg
+    <motion.svg
       className={`patientIllustration ${svgState}`}
       viewBox="0 0 1200 760"
       role="img"
       aria-label="Paciente joven recostado en una camilla hospitalaria"
+      animate={breathingMotion}
+      transition={{ duration: svgState === "respiratory distress" ? 1.2 : 3.4, repeat: Infinity, ease: "easeInOut" }}
     >
       <defs>
         <linearGradient id="sheetGrad" x1="0" x2="1">
@@ -165,7 +187,7 @@ const PatientIllustration = ({ state }: { state: GameState }) => {
       </g>
 
       <ellipse cx="600" cy="260" rx="200" ry="160" fill="url(#glowGrad)" />
-    </svg>
+    </motion.svg>
   );
 };
 
@@ -311,34 +333,50 @@ export default function App() {
   ];
 
   return (
-    <div className={`appShell ${visualClass}`}>
+    <motion.div className={`appShell ${visualClass} mx-auto flex min-h-[100dvh] w-full max-w-[930px] flex-col gap-4 px-3 py-3 text-slate-100 sm:px-4 sm:py-4`}>
       <div className="backgroundGrid" />
-      {showRotateHint && (
-        <div className="orientationOverlay" role="status" aria-live="polite">
-          <div className="orientationOverlay__card">
-            <p className="eyebrow">Modo recomendado</p>
-            <h2>Gira el móvil a horizontal</h2>
-            <p>
-              Este simulador está pensado para verse en apaisado y aprovechar mejor la camilla, el monitor y el
-              bolsillo médico.
-            </p>
-            <div className="orientationOverlay__icon" aria-hidden="true">
-              <span>↻</span>
-            </div>
-          </div>
-        </div>
-      )}
-      <section className="introGrid">
-        <article className="introCard introCard--stats">
+      <AnimatePresence>
+        {showRotateHint && (
+          <motion.div
+            className="orientationOverlay"
+            role="status"
+            aria-live="polite"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.24 }}
+          >
+            <motion.div className="orientationOverlay__card" initial={{ y: 14 }} animate={{ y: 0 }} transition={{ duration: 0.35 }}>
+              <p className="eyebrow">Modo recomendado</p>
+              <h2>Gira el móvil a horizontal</h2>
+              <p>
+                Este simulador está pensado para verse en apaisado y aprovechar mejor la camilla, el monitor y el
+                bolsillo médico.
+              </p>
+              <motion.div
+                className="orientationOverlay__icon"
+                aria-hidden="true"
+                animate={{ rotate: [0, -8, 8, 0] }}
+                transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <span>↻</span>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <motion.section className="introGrid" {...fadeUp}>
+        <motion.article className="introCard introCard--stats" {...fadeUp}>
           <div className="compactStatGrid">
             <StatBar icon="❤" label="VIDA" value={state.stats.life} max={4} />
             <StatBar icon="🌡" label="FIEBRE" value={state.stats.fever} max={5} />
             <StatBar icon="⚠" label="COMPLICACIONES" value={state.stats.complications} max={5} />
             <StatBar icon="☠" label="IATROGENIA" value={state.stats.iatrogenia} max={3} />
           </div>
-        </article>
+        </motion.article>
 
-        <article className="introCard patientCard">
+        <motion.article className="introCard patientCard" {...fadeUp}>
           <div className="patientCard__top">
             <div className="patientCard__avatar" aria-hidden="true">
               <span>◔</span>
@@ -353,10 +391,10 @@ export default function App() {
           <strong>Sospecha diagnóstica:</strong>
           <p className="patientCard__diagnosis">Sarampión</p>
           <p className="patientCard__summary">{patientSummary}</p>
-        </article>
-      </section>
+        </motion.article>
+      </motion.section>
 
-      <section className={`patientStage ${visualClass}`}>
+      <motion.section className={`patientStage ${visualClass}`} {...fadeUp}>
         <div className="turnCallout">
           <p className="turnCallout__label">TURNO {turn.id + 1} DE {turns.length}</p>
           <p className="turnCallout__body">{turn.scene}</p>
@@ -401,17 +439,17 @@ export default function App() {
           <strong>{currentOutcome?.title ?? "Caso en curso"}</strong>
           <p>{currentOutcome?.description ?? "La historia avanza turno a turno. El desenlace todavía depende de la toma de decisiones."}</p>
         </div>
-      </section>
+      </motion.section>
 
-      <section className="pocketPanel">
+      <motion.section className="pocketPanel" {...fadeUp}>
         <div className="pocketPanel__head">
           <div>
             <p className="pocketPanel__eyebrow">BOLSILLO MÉDICO</p>
             <h3>Medicamentos, acciones y soporte</h3>
           </div>
-          <button type="button" className="ghostButton" onClick={resetGame}>
+          <motion.button type="button" className="ghostButton" onClick={resetGame} {...tapFeedback}>
             Reiniciar caso
-          </button>
+          </motion.button>
         </div>
 
         <div className="pocketGrid">
@@ -419,15 +457,16 @@ export default function App() {
             <p className="pocketColumn__title">Medicamentos</p>
             <div className="optionGrid optionGrid--stack">
               {medicationOptions.map((med) => (
-                <button
+                <motion.button
                   key={med.key}
                   type="button"
                   className={`optionCard ${state.selectedMedication === med.key ? "active" : ""}`}
                   onClick={() => chooseMedication(med.key)}
+                  {...tapFeedback}
                 >
                   <span>{med.label}</span>
                   <small>{med.help}</small>
-                </button>
+                </motion.button>
               ))}
             </div>
             <label className="doseInput">
@@ -457,15 +496,16 @@ export default function App() {
             <p className="pocketColumn__title">Acciones</p>
             <div className="optionGrid optionGrid--stack">
               {actionOptions.map((action) => (
-                <button
+                <motion.button
                   key={action.key}
                   type="button"
                   className={`optionCard ${selectedAction === action.key ? "active" : ""}`}
                   onClick={() => chooseAction(action.key)}
+                  {...tapFeedback}
                 >
                   <span>{action.label}</span>
                   <small>{action.help}</small>
-                </button>
+                </motion.button>
               ))}
             </div>
           </article>
@@ -474,28 +514,29 @@ export default function App() {
             <p className="pocketColumn__title">Soporte</p>
             <div className="optionGrid optionGrid--stack">
               {supportOptions.map((support) => (
-                <button
+                <motion.button
                   key={support.key}
                   type="button"
                   className={`optionCard ${selectedSupport === support.key ? "active" : ""}`}
                   onClick={() => chooseSupport(support.key)}
+                  {...tapFeedback}
                 >
                   <span>{support.label}</span>
                   <small>{support.help}</small>
-                </button>
+                </motion.button>
               ))}
             </div>
           </article>
         </div>
 
         <div className="actionDock">
-          <button type="button" className="primaryButton" onClick={submitChoice} disabled={isFinished}>
+          <motion.button type="button" className="primaryButton" onClick={submitChoice} disabled={isFinished} {...tapFeedback}>
             APLICAR DECISIÓN
-          </button>
+          </motion.button>
         </div>
-      </section>
+      </motion.section>
 
-      <section className="historyPanel">
+      <motion.section className="historyPanel" {...fadeUp}>
         <div className="historyPanel__head">
           <p className="pocketPanel__eyebrow">HISTORIAL DE DECISIONES</p>
         </div>
@@ -507,19 +548,19 @@ export default function App() {
             </div>
           ))}
         </div>
-      </section>
+      </motion.section>
 
-      <nav className="bottomNav" aria-label="Secciones">
-        <button type="button" className="bottomNav__item active">
+      <motion.nav className="bottomNav" aria-label="Secciones" {...fadeUp}>
+        <motion.button type="button" className="bottomNav__item active" {...tapFeedback}>
           <span>Paciente</span>
-        </button>
-        <button type="button" className="bottomNav__item">
+        </motion.button>
+        <motion.button type="button" className="bottomNav__item" {...tapFeedback}>
           <span>Objetivos</span>
-        </button>
-        <button type="button" className="bottomNav__item">
+        </motion.button>
+        <motion.button type="button" className="bottomNav__item" {...tapFeedback}>
           <span>Resultados</span>
-        </button>
-      </nav>
-    </div>
+        </motion.button>
+      </motion.nav>
+    </motion.div>
   );
 }
