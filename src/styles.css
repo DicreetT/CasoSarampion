@@ -73,64 +73,6 @@ button {
   pointer-events: none;
 }
 
-.orientationOverlay {
-  position: fixed;
-  inset: 0;
-  z-index: 30;
-  display: grid;
-  place-items: center;
-  padding: 18px;
-  background:
-    radial-gradient(circle at top, rgba(123, 255, 138, 0.12), transparent 34%),
-    radial-gradient(circle at bottom, rgba(109, 207, 246, 0.1), transparent 34%),
-    rgba(2, 6, 10, 0.92);
-  backdrop-filter: blur(18px);
-}
-
-.orientationOverlay__card {
-  width: min(440px, 100%);
-  padding: 24px 20px 18px;
-  border-radius: 26px;
-  border: 1px solid rgba(123, 255, 138, 0.16);
-  background:
-    linear-gradient(180deg, rgba(7, 13, 18, 0.96), rgba(3, 7, 10, 0.98)),
-    radial-gradient(circle at top, rgba(123, 255, 138, 0.12), transparent 48%);
-  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.62);
-  text-align: center;
-}
-
-.orientationOverlay__card h2 {
-  margin-bottom: 10px;
-  font-size: clamp(1.5rem, 5vw, 2rem);
-  line-height: 1.05;
-}
-
-.orientationOverlay__card p {
-  margin-bottom: 0;
-  color: #cfe7d3;
-  line-height: 1.55;
-}
-
-.orientationOverlay__icon {
-  display: grid;
-  place-items: center;
-  width: 78px;
-  height: 78px;
-  margin: 18px auto 0;
-  border-radius: 999px;
-  border: 1px solid rgba(123, 255, 138, 0.22);
-  background: rgba(123, 255, 138, 0.08);
-  color: var(--neon);
-  font-size: 2rem;
-  box-shadow: 0 0 24px rgba(123, 255, 138, 0.16);
-  animation: rotateCue 1.8s ease-in-out infinite;
-}
-
-.orientationOverlay__icon span {
-  display: inline-block;
-  transform: rotate(0deg);
-}
-
 .topBar,
 .gameLayout,
 .pocketPanel {
@@ -1506,16 +1448,6 @@ h1 {
   }
   50% {
     box-shadow: 0 0 36px rgba(255, 102, 124, 0.22);
-  }
-}
-
-@keyframes rotateCue {
-  0%,
-  100% {
-    transform: translateY(0) scale(1);
-  }
-  50% {
-    transform: translateY(-4px) scale(1.04);
   }
 }
 

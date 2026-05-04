@@ -195,7 +195,6 @@ export default function App() {
   const [state, setState] = useState<GameState>(() => loadSavedGameState() ?? initialState);
   const [selectedAction, setSelectedAction] = useState<ActionKey | null>(null);
   const [selectedSupport, setSelectedSupport] = useState<SupportKey | null>(null);
-  const [showRotateHint, setShowRotateHint] = useState(false);
   const [previewText, setPreviewText] = useState(
     "Selecciona una intervención del pocket médico y aplica la decisión para avanzar al siguiente turno.",
   );
@@ -203,24 +202,6 @@ export default function App() {
   useEffect(() => {
     saveGameState(state);
   }, [state]);
-
-  useEffect(() => {
-    const media = window.matchMedia("(orientation: portrait)");
-
-    const updateOrientationHint = () => {
-      setShowRotateHint(media.matches && window.innerWidth < 980);
-    };
-
-    updateOrientationHint();
-
-    media.addEventListener?.("change", updateOrientationHint);
-    window.addEventListener("resize", updateOrientationHint);
-
-    return () => {
-      media.removeEventListener?.("change", updateOrientationHint);
-      window.removeEventListener("resize", updateOrientationHint);
-    };
-  }, []);
 
   const turn = getTurn(state);
   const outcomeTone = getOutcomeTone(state.outcome);
@@ -335,36 +316,6 @@ export default function App() {
   return (
     <motion.div className={`appShell ${visualClass} mx-auto flex min-h-[100dvh] w-full max-w-[930px] flex-col gap-4 px-3 py-3 text-slate-100 sm:px-4 sm:py-4`}>
       <div className="backgroundGrid" />
-      <AnimatePresence>
-        {showRotateHint && (
-          <motion.div
-            className="orientationOverlay"
-            role="status"
-            aria-live="polite"
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.24 }}
-          >
-            <motion.div className="orientationOverlay__card" initial={{ y: 14 }} animate={{ y: 0 }} transition={{ duration: 0.35 }}>
-              <p className="eyebrow">Modo recomendado</p>
-              <h2>Gira el móvil a horizontal</h2>
-              <p>
-                Este simulador está pensado para verse en apaisado y aprovechar mejor la camilla, el monitor y el
-                bolsillo médico.
-              </p>
-              <motion.div
-                className="orientationOverlay__icon"
-                aria-hidden="true"
-                animate={{ rotate: [0, -8, 8, 0] }}
-                transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <span>↻</span>
-              </motion.div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <motion.section className="introGrid" {...fadeUp}>
         <motion.article className="introCard introCard--stats" {...fadeUp}>
