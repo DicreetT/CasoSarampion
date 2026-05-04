@@ -5,6 +5,7 @@ import {
   createInitialState,
   getActionOutcomePreview,
   getOutcomeTone,
+  getPatientSummary,
   getTurn,
   turns,
   type ActionKey,
@@ -322,6 +323,7 @@ export default function App() {
   const currentOutcome = state.outcome;
   const contagionOpacity = state.flags.isolated ? 0 : Math.min(0.95, state.hidden.outbreakRisk / 5);
   const contagionActive = contagionOpacity > 0.04;
+  const patientSummary = getPatientSummary(state);
   const historyRows = [
     {
       label: "Turno 0",
@@ -337,183 +339,209 @@ export default function App() {
   ];
 
   return (
-    <motion.div className={`appShell ${visualClass} mx-auto flex min-h-[100dvh] w-full max-w-[930px] flex-col gap-4 px-3 py-3 text-slate-100 sm:px-4 sm:py-4`}>
+    <motion.div
+      className={`appShell ${visualClass}`}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+    >
       <div className="backgroundGrid" />
 
-      <motion.section className={`patientStage ${visualClass}`} {...fadeUp}>
-        <div className="hudOverlay">
-          <div className="hudStats">
-            <div className="compactStatGrid">
-              <StatBar icon="❤" label="VIDA" value={state.stats.life} max={4} />
-              <StatBar icon="🌡" label="FIEBRE" value={state.stats.fever} max={5} />
-              <StatBar icon="⚠" label="COMPLICACIONES" value={state.stats.complications} max={5} />
-              <StatBar icon="☠" label="IATROGENIA" value={state.stats.iatrogenia} max={3} />
+      <main className="simulatorFrame">
+        <section className={`heroScene ${visualClass}`}>
+          <div className="hudPanel hudPanel--left">
+            <StatBar icon="❤️" label="VIDA" value={state.stats.life} max={4} />
+            <StatBar icon="🌡️" label="FIEBRE" value={state.stats.fever} max={5} />
+            <StatBar icon="⚠️" label="COMPLICACIONES" value={state.stats.complications} max={5} />
+            <StatBar icon="☠️" label="IATROGENIA" value={state.stats.iatrogenia} max={3} />
+          </div>
+
+          <div className="turnBanner">
+            <span>TURNO {turn.id + 1} DE {turns.length}</span>
+            <p>{turn.scene}</p>
+            <strong>¿Qué decides hacer?</strong>
+          </div>
+
+          <div className="patientInfoPanel">
+            <div className="patientInfoPanel__top">
+              <span className="patientIcon">☤</span>
+              <div>
+                <strong>Paciente: A.R.M.</strong>
+                <p>21 años · Masculino</p>
+              </div>
+            </div>
+            <div className="patientInfoPanel__divider" />
+            <span className="diagnosisLabel">Sospecha diagnóstica</span>
+            <h2>Sarampión</h2>
+            <p>{patientSummary}</p>
+          </div>
+
+          <div className="vitalMonitor">
+            <div className="monitorHeader">
+              <span>Monitor de cabecera</span>
+              <strong>{state.visualState.replace("respiratory distress", "distress")}</strong>
+            </div>
+
+            <div className="monitorWave" />
+
+            <div className="vitalRows">
+              <VitalPill label="FC" value={`${state.vitals.hr} lpm`} tone={state.vitals.hr > 115 ? "danger" : "neutral"} />
+              <VitalPill label="FR" value={`${state.vitals.rr}/min`} tone={state.vitals.rr >= 28 ? "danger" : "neutral"} />
+              <VitalPill label="SpO₂" value={`${state.vitals.spo2}%`} tone={state.vitals.spo2 <= 92 ? "danger" : "neutral"} />
+              <VitalPill label="TEMP" value={`${state.vitals.temperature.toFixed(1)} °C`} tone={state.vitals.temperature >= 39 ? "warning" : "neutral"} />
+              <VitalPill label="TA" value={state.vitals.bp} tone="neutral" />
             </div>
           </div>
 
-          <div className="patientMiniCard">
-            <strong>A.R.M.</strong>
-            <span>21 años · Masculino</span>
-            <span>Sospecha: Sarampión</span>
-          </div>
-        </div>
-
-        <div className="turnCallout">
-          <p className="turnCallout__label">TURNO {turn.id + 1} DE {turns.length}</p>
-          <p className="turnCallout__body">{turn.scene}</p>
-          <p className="turnCallout__question">¿Qué decides hacer?</p>
-        </div>
-
-        <div className="clinicalScene">
-          <div className="patientStage__monitor">
-            <div className={`monitor ${visualClass}`}>
-              <div className="monitor__header">
-                <span>Monitor de cabecera</span>
-                <strong>{state.visualState.replace("respiratory distress", "distress")}</strong>
-              </div>
-              <div className="monitorAlarm" aria-hidden="true" />
-              <div className="monitorWave" />
-              <div className="vitalsGrid vitalsGrid--compact">
-                <VitalPill label="HR" value={`${state.vitals.hr} bpm`} tone="neutral" />
-                <VitalPill label="RR" value={`${state.vitals.rr}/min`} tone={state.vitals.rr >= 28 ? "danger" : "neutral"} />
-                <VitalPill label="Temp" value={`${state.vitals.temperature.toFixed(1)} C`} tone={state.vitals.temperature >= 39 ? "warning" : "neutral"} />
-                <VitalPill label="SpO2" value={`${state.vitals.spo2}%`} tone={state.vitals.spo2 <= 92 ? "danger" : "neutral"} />
-                <VitalPill label="BP" value={state.vitals.bp} tone="neutral" />
-              </div>
+          {contagionActive && (
+            <div className="contagionBackdrop" style={{ opacity: contagionOpacity }}>
+              <span className="contagionSilhouette contagionSilhouette--one" />
+              <span className="contagionSilhouette contagionSilhouette--two" />
+              <span className="contagionSilhouette contagionSilhouette--three" />
             </div>
-          </div>
+          )}
 
-          <div className="patientStage__body">
+          <div className="patientCenter">
             <PatientIllustration state={state} />
           </div>
-        </div>
 
-        {contagionActive && (
-          <div className="contagionBackdrop" aria-hidden="true" style={{ opacity: contagionOpacity }}>
-            <span className="contagionSilhouette contagionSilhouette--one" />
-            <span className="contagionSilhouette contagionSilhouette--two" />
-            <span className="contagionSilhouette contagionSilhouette--three" />
-            <span className="contagionSilhouette contagionSilhouette--four" />
-            <span className="contagionParticle contagionParticle--one" />
-            <span className="contagionParticle contagionParticle--two" />
-            <span className="contagionParticle contagionParticle--three" />
+          <div className="currentStateStrip">
+            <strong>Estado actual:</strong>
+            <span>Fiebre · Exantema · Tos · Coriza · Conjuntivitis</span>
           </div>
-        )}
+        </section>
 
-        <div className={`resultStrip ${outcomeTone} ${currentOutcome ? "visible" : ""}`}>
-          <strong>{currentOutcome?.title ?? "Caso en curso"}</strong>
-          <p>{currentOutcome?.description ?? "La historia avanza turno a turno. El desenlace todavía depende de la toma de decisiones."}</p>
-        </div>
-      </motion.section>
-
-      <motion.section className="pocketPanel" {...fadeUp}>
-        <div className="pocketPanel__head">
-          <div>
-            <p className="pocketPanel__eyebrow">BOLSILLO MÉDICO</p>
-            <h3>Medicamentos, acciones y soporte</h3>
+        <section className="medicalPocket">
+          <div className="medicalPocket__title">
+            <span>🧰</span>
+            <h2>Bolsillo médico</h2>
           </div>
-          <motion.button type="button" className="ghostButton" onClick={resetGame} {...tapFeedback}>
-            Reiniciar caso
-          </motion.button>
-        </div>
 
-        <div className="pocketGrid">
-          <article className="pocketColumn">
-            <p className="pocketColumn__title">Medicamentos</p>
-            <div className="optionGrid optionGrid--stack">
+          <div className="pocketColumns">
+            <article className="pocketColumn pocketColumn--meds">
+              <h3>💊 Medicamentos</h3>
+
               {medicationOptions.map((med) => (
                 <motion.button
                   key={med.key}
                   type="button"
-                  className={`optionCard ${state.selectedMedication === med.key ? "active" : ""}`}
+                  className={`pocketItem ${state.selectedMedication === med.key ? "active" : ""}`}
                   onClick={() => chooseMedication(med.key)}
                   {...tapFeedback}
                 >
-                  <span>{med.label}</span>
-                  <small>{med.help}</small>
+                  <div>
+                    <strong>{med.label}</strong>
+                    <small>{med.help}</small>
+                  </div>
                 </motion.button>
               ))}
-            </div>
-            <label className="doseInput">
-              <span>Dosis en mg</span>
-              <input
-                type="number"
-                min="0"
-                step="50"
-                value={state.selectedDoseMg}
-                onChange={(event) => {
-                  setState((current) => ({ ...current, selectedDoseMg: event.target.value }));
-                  if (state.selectedMedication) {
-                    setPreviewText(
-                      getActionOutcomePreview({
-                        kind: "medication",
-                        key: state.selectedMedication,
-                        doseMg: event.target.value,
-                      }),
-                    );
-                  }
-                }}
-              />
-            </label>
-          </article>
 
-          <article className="pocketColumn">
-            <p className="pocketColumn__title">Acciones</p>
-            <div className="optionGrid optionGrid--stack">
+              <label className="doseControl">
+                <span>Dosis en mg</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="50"
+                  value={state.selectedDoseMg}
+                  onChange={(event) => {
+                    setState((current) => ({
+                      ...current,
+                      selectedDoseMg: event.target.value,
+                    }));
+
+                    if (state.selectedMedication) {
+                      setPreviewText(
+                        getActionOutcomePreview({
+                          kind: "medication",
+                          key: state.selectedMedication,
+                          doseMg: event.target.value,
+                        }),
+                      );
+                    }
+                  }}
+                />
+              </label>
+            </article>
+
+            <article className="pocketColumn pocketColumn--actions">
+              <h3>🖐️ Acciones</h3>
+
               {actionOptions.map((action) => (
                 <motion.button
                   key={action.key}
                   type="button"
-                  className={`optionCard ${selectedAction === action.key ? "active" : ""}`}
+                  className={`pocketItem ${selectedAction === action.key ? "active" : ""}`}
                   onClick={() => chooseAction(action.key)}
                   {...tapFeedback}
                 >
-                  <span>{action.label}</span>
-                  <small>{action.help}</small>
+                  <div>
+                    <strong>{action.label}</strong>
+                    <small>{action.help}</small>
+                  </div>
                 </motion.button>
               ))}
-            </div>
-          </article>
+            </article>
 
-          <article className="pocketColumn">
-            <p className="pocketColumn__title">Soporte</p>
-            <div className="optionGrid optionGrid--stack">
+            <article className="pocketColumn pocketColumn--support">
+              <h3>💧 Soporte</h3>
+
               {supportOptions.map((support) => (
                 <motion.button
                   key={support.key}
                   type="button"
-                  className={`optionCard ${selectedSupport === support.key ? "active" : ""}`}
+                  className={`pocketItem ${selectedSupport === support.key ? "active" : ""}`}
                   onClick={() => chooseSupport(support.key)}
                   {...tapFeedback}
                 >
-                  <span>{support.label}</span>
-                  <small>{support.help}</small>
+                  <div>
+                    <strong>{support.label}</strong>
+                    <small>{support.help}</small>
+                  </div>
                 </motion.button>
               ))}
-            </div>
-          </article>
-        </div>
+            </article>
+          </div>
 
-        <div className="actionDock">
-          <motion.button type="button" className="primaryButton" onClick={submitChoice} disabled={isFinished} {...tapFeedback}>
-            APLICAR DECISIÓN
+          <motion.button
+            type="button"
+            className="applyDecisionButton"
+            onClick={submitChoice}
+            disabled={isFinished}
+            {...tapFeedback}
+          >
+            APLICAR DECISIÓN →
           </motion.button>
-        </div>
-      </motion.section>
+        </section>
 
-      <motion.section className="historyPanel" {...fadeUp}>
-        <div className="historyPanel__head">
-          <p className="pocketPanel__eyebrow">HISTORIAL DE DECISIONES</p>
-        </div>
-        <div className="historyList">
-          {historyRows.map((row) => (
-            <div key={row.label} className="historyRow">
-              <strong>{row.label}</strong>
-              <span>{row.value}</span>
-            </div>
-          ))}
-        </div>
-      </motion.section>
+        <section className={`resultStrip ${outcomeTone} ${currentOutcome ? "visible" : ""}`}>
+          <strong>{currentOutcome?.title ?? "Caso en curso"}</strong>
+          <p>
+            {currentOutcome?.description ??
+              "La historia avanza turno a turno. El desenlace todavía depende de tus decisiones."}
+          </p>
+        </section>
+
+        <section className="historyPanel">
+          <h3>📋 Historial de decisiones</h3>
+
+          <div className="historyList">
+            {historyRows.map((row) => (
+              <div key={row.label} className="historyRow">
+                <strong>{row.label}</strong>
+                <span>{row.value}</span>
+              </div>
+            ))}
+          </div>
+
+          <motion.button
+            type="button"
+            className="ghostButton"
+            onClick={resetGame}
+            {...tapFeedback}
+          >
+            Reiniciar caso
+          </motion.button>
+        </section>
+      </main>
     </motion.div>
   );
 }

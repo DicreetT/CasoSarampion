@@ -55,7 +55,7 @@ button {
 
 .appShell {
   position: relative;
-  width: min(100%, 930px);
+  width: min(100%, 1280px);
   min-height: 100dvh;
   margin: 0 auto;
   padding: 18px;
@@ -70,6 +70,510 @@ button {
     linear-gradient(90deg, rgba(123, 255, 138, 0.028) 1px, transparent 1px);
   background-size: 42px 42px;
   mask-image: radial-gradient(circle at center, black 52%, transparent 100%);
+  pointer-events: none;
+}
+
+.simulatorFrame {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 16px;
+}
+
+.heroScene {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(290px, 0.95fr) minmax(500px, 1.65fr) minmax(280px, 0.95fr);
+  grid-template-rows: auto minmax(340px, 1fr) minmax(220px, auto) auto;
+  gap: 16px;
+  min-height: 980px;
+  padding: 18px;
+  border-radius: 34px;
+  overflow: hidden;
+  border: 1px solid rgba(109, 207, 246, 0.16);
+  background:
+    radial-gradient(circle at 50% 18%, rgba(20, 184, 166, 0.18), transparent 26%),
+    radial-gradient(circle at 8% 16%, rgba(123, 255, 138, 0.1), transparent 20%),
+    radial-gradient(circle at 92% 18%, rgba(109, 207, 246, 0.1), transparent 20%),
+    linear-gradient(180deg, rgba(3, 8, 12, 0.98), rgba(2, 6, 9, 0.99));
+  box-shadow: 0 36px 110px rgba(0, 0, 0, 0.62);
+}
+
+.heroScene::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgba(123, 255, 138, 0.024) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(123, 255, 138, 0.024) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(circle at center, black 52%, transparent 100%);
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.heroScene > * {
+  position: relative;
+  z-index: 2;
+}
+
+.hudPanel--left {
+  grid-column: 1;
+  grid-row: 1 / span 3;
+}
+
+.turnBanner {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: start;
+  justify-self: center;
+  width: min(100%, 560px);
+  padding: 16px 18px 18px;
+  border-radius: 24px;
+  border: 1px solid rgba(123, 255, 138, 0.14);
+  background: rgba(5, 10, 15, 0.84);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+  text-align: center;
+}
+
+.turnBanner span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  color: var(--neon);
+  background: rgba(123, 255, 138, 0.08);
+  border: 1px solid rgba(123, 255, 138, 0.16);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.82rem;
+}
+
+.turnBanner p {
+  margin-bottom: 10px;
+  color: #eef7f8;
+  font-size: clamp(1.02rem, 1.4vw, 1.28rem);
+  line-height: 1.55;
+}
+
+.turnBanner strong {
+  color: #cbe8d1;
+  font-size: 0.96rem;
+  letter-spacing: 0.02em;
+}
+
+.patientInfoPanel {
+  grid-column: 3;
+  grid-row: 1;
+  align-self: start;
+  padding: 18px;
+  border-radius: 28px;
+  background: rgba(4, 9, 13, 0.84);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(109, 207, 246, 0.26);
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.4);
+}
+
+.patientInfoPanel__top {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.patientIcon {
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(109, 207, 246, 0.3);
+  background: rgba(109, 207, 246, 0.08);
+  color: #dff4ff;
+  font-size: 1.75rem;
+}
+
+.patientInfoPanel strong {
+  display: block;
+  font-size: 1.1rem;
+}
+
+.patientInfoPanel p {
+  margin-bottom: 0;
+  color: #b9ced6;
+  line-height: 1.45;
+}
+
+.patientInfoPanel__divider {
+  height: 1px;
+  margin: 16px 0 14px;
+  background: linear-gradient(90deg, transparent, rgba(109, 207, 246, 0.45), transparent);
+}
+
+.diagnosisLabel {
+  display: block;
+  margin-bottom: 8px;
+  color: #c1d8df;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-size: 0.92rem;
+}
+
+.patientInfoPanel h2 {
+  margin-bottom: 10px;
+  color: #ff5d74;
+  font-size: 1.5rem;
+  text-shadow: 0 0 16px rgba(255, 93, 116, 0.32);
+}
+
+.patientInfoPanel > p:last-child {
+  margin-bottom: 0;
+  color: #d7e8ee;
+  line-height: 1.56;
+}
+
+.vitalMonitor {
+  grid-column: 3;
+  grid-row: 2 / span 2;
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 30px;
+  background:
+    linear-gradient(180deg, rgba(4, 10, 12, 0.98), rgba(2, 7, 9, 0.96)),
+    radial-gradient(circle at top, rgba(123, 255, 138, 0.08), transparent 44%);
+  border: 1px solid rgba(123, 255, 138, 0.2);
+  box-shadow:
+    inset 0 0 28px rgba(123, 255, 138, 0.08),
+    0 26px 72px rgba(0, 0, 0, 0.42);
+}
+
+.monitorHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  color: #cfeedd;
+  font-size: 0.94rem;
+  letter-spacing: 0.02em;
+}
+
+.monitorHeader strong {
+  color: var(--neon);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.76rem;
+  text-shadow: 0 0 12px rgba(123, 255, 138, 0.52);
+}
+
+.vitalRows {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.vitalRows .vitalPill:last-child {
+  grid-column: 1 / -1;
+}
+
+.patientCenter {
+  grid-column: 2;
+  grid-row: 2 / span 2;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 620px;
+  padding: 12px 6px 18px;
+  border-radius: 30px;
+  overflow: hidden;
+  border: 1px solid rgba(123, 255, 138, 0.08);
+  background:
+    radial-gradient(circle at 50% 20%, rgba(20, 184, 166, 0.16), transparent 30%),
+    radial-gradient(circle at center, rgba(123, 255, 138, 0.1), transparent 48%),
+    linear-gradient(180deg, rgba(5, 10, 15, 0.7), rgba(3, 7, 10, 0.82));
+  box-shadow: inset 0 0 0 1px rgba(123, 255, 138, 0.04);
+}
+
+.patientCenter::before {
+  content: "";
+  position: absolute;
+  inset: 18px;
+  border-radius: 24px;
+  border: 1px solid rgba(109, 207, 246, 0.08);
+  pointer-events: none;
+}
+
+.patientCenter .patientIllustrationFrame {
+  width: min(100%, 1140px);
+}
+
+.patientCenter .patientIllustrationRaster,
+.patientCenter .patientIllustration {
+  filter: drop-shadow(0 28px 48px rgba(0, 0, 0, 0.34));
+}
+
+.contagionBackdrop {
+  grid-column: 2 / span 2;
+  grid-row: 2 / span 2;
+  z-index: 1;
+}
+
+.currentStateStrip {
+  grid-column: 1 / -1;
+  grid-row: 4;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  padding: 13px 16px;
+  border-radius: 22px;
+  border: 1px solid rgba(109, 207, 246, 0.16);
+  background: rgba(4, 8, 12, 0.76);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.32);
+}
+
+.currentStateStrip strong {
+  color: #d6f4ff;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.82rem;
+}
+
+.currentStateStrip span {
+  color: #c8dde4;
+  text-align: center;
+}
+
+.medicalPocket {
+  position: relative;
+  z-index: 1;
+  padding: 16px 18px 18px;
+  border-radius: 30px;
+  border: 1px solid rgba(123, 255, 138, 0.12);
+  background:
+    radial-gradient(circle at top, rgba(123, 255, 138, 0.06), transparent 34%),
+    rgba(4, 8, 12, 0.92);
+  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow);
+}
+
+.medicalPocket__title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  color: #cdeed6;
+}
+
+.medicalPocket__title span {
+  font-size: 1.3rem;
+}
+
+.medicalPocket__title h2 {
+  margin-bottom: 0;
+  font-size: 1.2rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pocketColumns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.pocketColumn--meds {
+  border-color: rgba(109, 207, 246, 0.18);
+}
+
+.pocketColumn--actions {
+  border-color: rgba(123, 255, 138, 0.18);
+}
+
+.pocketColumn--support {
+  border-color: rgba(240, 187, 63, 0.18);
+}
+
+.pocketColumn h3 {
+  margin-bottom: 12px;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+}
+
+.pocketColumn--meds h3 {
+  color: #62b6ff;
+}
+
+.pocketColumn--actions h3 {
+  color: #9ce8ac;
+}
+
+.pocketColumn--support h3 {
+  color: #f2c65e;
+}
+
+.pocketColumn {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 24px;
+  border: 1px solid rgba(123, 255, 138, 0.1);
+  background: rgba(3, 7, 10, 0.78);
+}
+
+.pocketItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 14px 15px;
+  border-radius: 18px;
+  border: 1px solid rgba(123, 255, 138, 0.12);
+  background: rgba(5, 10, 14, 0.9);
+  color: var(--text);
+  text-align: left;
+  box-shadow: inset 0 0 0 1px rgba(123, 255, 138, 0.02);
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.pocketItem:hover {
+  transform: translateY(-2px);
+  border-color: rgba(123, 255, 138, 0.28);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.22);
+}
+
+.pocketItem strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.98rem;
+}
+
+.pocketItem small {
+  color: #9cb1b7;
+  line-height: 1.35;
+}
+
+.pocketItem.active {
+  background: linear-gradient(180deg, rgba(123, 255, 138, 0.14), rgba(5, 10, 14, 0.94));
+  border-color: rgba(123, 255, 138, 0.42);
+  box-shadow:
+    inset 0 0 0 1px rgba(123, 255, 138, 0.1),
+    0 0 24px rgba(123, 255, 138, 0.14);
+}
+
+.doseControl {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(109, 207, 246, 0.16);
+  background: rgba(5, 10, 14, 0.78);
+}
+
+.doseControl span {
+  color: #9cb1b7;
+  font-size: 0.84rem;
+  letter-spacing: 0.03em;
+}
+
+.doseControl input {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid rgba(109, 207, 246, 0.2);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.62);
+  color: #8cf6a2;
+  text-shadow: 0 0 12px rgba(123, 255, 138, 0.42);
+  box-shadow: inset 0 0 0 1px rgba(123, 255, 138, 0.04);
+  outline: none;
+}
+
+.doseControl input:focus {
+  border-color: rgba(123, 255, 138, 0.42);
+  box-shadow: 0 0 0 3px rgba(123, 255, 138, 0.08);
+}
+
+.applyDecisionButton {
+  width: 100%;
+  margin-top: 16px;
+  min-height: 74px;
+  padding: 16px 18px;
+  border: 0;
+  border-radius: 22px;
+  background: linear-gradient(90deg, #4ade80, #22d3ee);
+  color: #031014;
+  font-size: 1.08rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  box-shadow: 0 0 0 1px rgba(123, 255, 138, 0.2), 0 0 28px rgba(34, 211, 238, 0.18);
+}
+
+.applyDecisionButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.historyPanel {
+  margin-top: 2px;
+}
+
+.historyPanel h3 {
+  margin-bottom: 12px;
+}
+
+.ghostButton {
+  margin-top: 14px;
+}
+
+.resultStrip {
+  position: relative;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  margin-top: 16px;
+  padding: 14px 16px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.resultStrip p {
+  margin-bottom: 0;
+}
+
+.simulatorFrame .historyPanel {
+  margin-top: 0;
+}
+
+.patientCenter .patientIllustrationFrame {
+  max-width: 1160px;
+}
+
+.patientCenter .patientIllustrationRaster {
+  opacity: 0.99;
+}
+
+.patientCenter .patientIllustration {
+  opacity: 0.98;
+}
+
+.patientCenter .patientIllustration.is-critical,
+.patientCenter .patientIllustrationRaster.is-critical {
+  filter: brightness(0.82) saturate(0.85);
+}
+
+.patientCenter .patientIllustrationFrame,
+.patientCenter .patientIllustration,
+.patientCenter .patientIllustrationRaster {
   pointer-events: none;
 }
 
@@ -378,11 +882,11 @@ h1 {
 }
 
 .resultStrip {
-  position: absolute;
-  left: 18px;
-  right: 18px;
-  bottom: 18px;
-  z-index: 5;
+  position: relative;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  z-index: 1;
   display: grid;
   gap: 4px;
   padding: 12px 14px;
@@ -1533,6 +2037,11 @@ h1 {
   .appShell {
     width: min(100%, 900px);
   }
+
+  .heroScene {
+    grid-template-columns: minmax(260px, 0.92fr) minmax(420px, 1.45fr) minmax(250px, 0.86fr);
+    min-height: 920px;
+  }
 }
 
 @media (max-width: 760px) {
@@ -1540,80 +2049,71 @@ h1 {
     padding: 12px;
   }
 
-  .turnCallout {
-    top: 16px;
-    width: min(520px, calc(100% - 40px));
-    padding: 14px 16px 16px;
-  }
-
-  .hudOverlay {
-    flex-direction: column;
-  }
-
-  .hudStats,
-  .patientMiniCard {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .clinicalScene {
+  .heroScene {
     grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    min-height: auto;
+    padding: 14px;
     gap: 14px;
-    padding: 150px 12px 24px;
   }
 
-  .patientStage__monitor {
+  .hudPanel--left,
+  .turnBanner,
+  .patientInfoPanel,
+  .patientCenter,
+  .vitalMonitor,
+  .currentStateStrip,
+  .contagionBackdrop {
     grid-column: 1;
-    grid-row: 1;
-    width: min(340px, 100%);
-    justify-self: end;
+    grid-row: auto;
   }
 
-  .pocketGrid {
+  .hudPanel--left {
+    grid-row: auto;
+  }
+
+  .turnBanner {
+    width: 100%;
+    justify-self: stretch;
+    padding: 13px 14px 14px;
+  }
+
+  .patientCenter {
+    min-height: 360px;
+  }
+
+  .vitalMonitor {
+    grid-row: auto;
+  }
+
+  .currentStateStrip {
+    justify-content: flex-start;
+  }
+
+  .pocketColumns {
     grid-template-columns: 1fr;
   }
 
-  .patientStage {
-    min-height: 700px;
+  .medicalPocket {
     padding: 14px;
-    border-radius: 22px;
   }
 
-  .patientStage__body {
-    grid-column: 1;
-    grid-row: 2;
-    min-height: 420px;
-    transform: scale(1.02);
+  .hudPanel--left {
+    padding: 14px;
   }
 
-  .resultStrip {
-    left: 12px;
-    right: 12px;
-    bottom: 12px;
+  .hudPanel--left .statBar {
     padding: 10px 12px;
-  }
-
-  .pocketPanel {
-    margin-top: 10px;
-    padding: 14px;
-    border-radius: 22px;
-  }
-
-  .pocketPanel__head {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-    margin-bottom: 12px;
-  }
-
-  .pocketColumn {
-    padding: 12px;
-    border-radius: 20px;
   }
 
   .historyPanel {
     padding: 14px;
     border-radius: 22px;
+  }
+
+  .resultStrip {
+    margin-top: 14px;
+    padding: 10px 12px;
   }
 
   .historyRow {
@@ -1622,8 +2122,18 @@ h1 {
     padding: 14px;
   }
 
-  .actionDock {
-    margin-top: 12px;
+  .patientInfoPanel,
+  .vitalMonitor,
+  .medicalPocket,
+  .historyPanel {
+    border-radius: 22px;
+  }
+
+  .patientInfoPanel,
+  .vitalMonitor {
+    width: 100%;
+    min-width: 0;
+    padding: 14px;
   }
 }
 
@@ -1632,70 +2142,76 @@ h1 {
     padding: 10px;
   }
 
-  .compactStatGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .patientStage {
-    min-height: 680px;
-  }
-
-  .patientStage__body {
-    min-height: 380px;
-    transform: scale(0.98);
-  }
-
-  .patientIllustrationFrame {
-    width: 108%;
-  }
-
-  .monitor__header {
-    font-size: 0.8rem;
-  }
-
-  .vitalsGrid--compact {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .patientCard__meta span {
-    grid-template-columns: 1fr;
-    gap: 4px;
-  }
-
-  .patientCard__top {
+  .heroScene {
+    padding: 12px;
     gap: 12px;
   }
 
-  .patientCard__avatar {
-    width: 46px;
-    height: 46px;
-    font-size: 1.6rem;
+  .hudPanel--left {
+    padding: 14px;
   }
 
-  .turnCallout {
-    top: 12px;
-    width: calc(100% - 24px);
+  .hudPanel--left .statBar {
+    padding: 11px 12px;
+    border-radius: 16px;
   }
 
-  .turnCallout__body {
-    font-size: 1rem;
+  .patientCenter {
+    min-height: 300px;
   }
 
-  .patientStage__monitor {
-    width: min(300px, 100%);
+  .patientCenter .patientIllustrationFrame {
+    width: 106%;
+  }
+
+  .turnBanner {
+    padding: 12px 13px 13px;
+  }
+
+  .turnBanner p {
+    font-size: 0.98rem;
+  }
+
+  .monitorHeader {
+    font-size: 0.8rem;
+  }
+
+  .vitalRows {
+    grid-template-columns: 1fr 1fr;
   }
 
   .pocketGrid {
     gap: 12px;
   }
 
-  .optionCard {
-    min-height: 82px;
+  .pocketItem {
     padding: 12px;
   }
 
-  .primaryButton {
+  .doseControl {
+    padding: 12px;
+  }
+
+  .applyDecisionButton {
+    min-height: 66px;
     font-size: 0.98rem;
+  }
+
+  .historyRow {
+    padding: 12px;
+  }
+
+  .medicalPocket__title {
+    margin-bottom: 14px;
+  }
+
+  .currentStateStrip {
+    padding: 11px 12px;
+  }
+
+  .currentStateStrip strong,
+  .currentStateStrip span {
+    font-size: 0.8rem;
   }
 }
 
