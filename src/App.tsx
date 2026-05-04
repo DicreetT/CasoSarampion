@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   applyChoice,
   createInitialState,
   getActionOutcomePreview,
   getOutcomeTone,
-  getPatientSummary,
   getTurn,
   turns,
   type ActionKey,
   type GameState,
   type MedicationKey,
+  type VisualState,
   type SupportKey,
 } from "./game/gameLogic";
 import { clearSavedGameState, loadSavedGameState, saveGameState } from "./services/sessionStore";
@@ -55,6 +55,15 @@ const tapFeedback = {
   whileTap: { scale: 0.985 },
   whileHover: { y: -2 },
   transition: { duration: 0.18 },
+};
+
+const patientRasterSources: Record<VisualState, string> = {
+  normal: "/assets/images/normal.png",
+  fever: "/assets/images/fever.png",
+  dehydrated: "/assets/images/dehydrated.png",
+  "respiratory distress": "/assets/images/respiratory.png",
+  critical: "/assets/images/critical.png",
+  improved: "/assets/images/improved.png",
 };
 
 const progressColor = (value: number, max: number) => {
@@ -105,6 +114,7 @@ const VitalPill = ({ label, value, tone = "neutral" }: { label: string; value: s
 
 const PatientIllustration = ({ state }: { state: GameState }) => {
   const svgState = state.visualState;
+  const [rasterFailed, setRasterFailed] = useState(false);
   const breathingMotion =
     svgState === "critical"
       ? { y: [0, -2, 0], scale: [1, 1.01, 1], rotate: [0, 0.25, -0.25, 0] }
@@ -112,15 +122,28 @@ const PatientIllustration = ({ state }: { state: GameState }) => {
         ? { y: [0, -3, 0], scale: [1, 1.013, 1] }
         : { y: [0, -2, 0], scale: [1, 1.008, 1] };
 
+  useEffect(() => {
+    setRasterFailed(false);
+  }, [svgState]);
+
   return (
-    <motion.svg
-      className={`patientIllustration ${svgState}`}
-      viewBox="0 0 1200 760"
-      role="img"
-      aria-label="Paciente joven recostado en una camilla hospitalaria"
-      animate={breathingMotion}
-      transition={{ duration: svgState === "respiratory distress" ? 1.2 : 3.4, repeat: Infinity, ease: "easeInOut" }}
-    >
+    <div className="patientIllustrationFrame">
+      {!rasterFailed && (
+        <img
+          className={`patientIllustrationRaster ${svgState}`}
+          src={patientRasterSources[svgState]}
+          alt="Paciente joven recostado en una camilla hospitalaria"
+          onError={() => setRasterFailed(true)}
+        />
+      )}
+      <motion.svg
+        className={`patientIllustration ${svgState}`}
+        viewBox="0 0 1200 760"
+        role="img"
+        aria-label="Paciente joven recostado en una camilla hospitalaria"
+        animate={breathingMotion}
+        transition={{ duration: svgState === "respiratory distress" ? 1.2 : 3.4, repeat: Infinity, ease: "easeInOut" }}
+      >
       <defs>
         <linearGradient id="sheetGrad" x1="0" x2="1">
           <stop offset="0%" stopColor="#eef5f8" />
@@ -187,7 +210,8 @@ const PatientIllustration = ({ state }: { state: GameState }) => {
       </g>
 
       <ellipse cx="600" cy="260" rx="200" ry="160" fill="url(#glowGrad)" />
-    </motion.svg>
+      </motion.svg>
+    </div>
   );
 };
 
@@ -298,7 +322,6 @@ export default function App() {
   const currentOutcome = state.outcome;
   const contagionOpacity = state.flags.isolated ? 0 : Math.min(0.95, state.hidden.outbreakRisk / 5);
   const contagionActive = contagionOpacity > 0.04;
-  const patientSummary = getPatientSummary(state);
   const historyRows = [
     {
       label: "Turno 0",
@@ -317,56 +340,51 @@ export default function App() {
     <motion.div className={`appShell ${visualClass} mx-auto flex min-h-[100dvh] w-full max-w-[930px] flex-col gap-4 px-3 py-3 text-slate-100 sm:px-4 sm:py-4`}>
       <div className="backgroundGrid" />
 
-      <motion.section className="introGrid" {...fadeUp}>
-        <motion.article className="introCard introCard--stats" {...fadeUp}>
-          <div className="compactStatGrid">
-            <StatBar icon="❤" label="VIDA" value={state.stats.life} max={4} />
-            <StatBar icon="🌡" label="FIEBRE" value={state.stats.fever} max={5} />
-            <StatBar icon="⚠" label="COMPLICACIONES" value={state.stats.complications} max={5} />
-            <StatBar icon="☠" label="IATROGENIA" value={state.stats.iatrogenia} max={3} />
-          </div>
-        </motion.article>
-
-        <motion.article className="introCard patientCard" {...fadeUp}>
-          <div className="patientCard__top">
-            <div className="patientCard__avatar" aria-hidden="true">
-              <span>◔</span>
-            </div>
-            <div className="patientCard__meta">
-              <span>Paciente: A.R.M.</span>
-              <span>Edad: 21 años</span>
-              <span>Sexo: Masculino</span>
-            </div>
-          </div>
-          <div className="patientCard__divider" />
-          <strong>Sospecha diagnóstica:</strong>
-          <p className="patientCard__diagnosis">Sarampión</p>
-          <p className="patientCard__summary">{patientSummary}</p>
-        </motion.article>
-      </motion.section>
-
       <motion.section className={`patientStage ${visualClass}`} {...fadeUp}>
+        <div className="hudOverlay">
+          <div className="hudStats">
+            <div className="compactStatGrid">
+              <StatBar icon="❤" label="VIDA" value={state.stats.life} max={4} />
+              <StatBar icon="🌡" label="FIEBRE" value={state.stats.fever} max={5} />
+              <StatBar icon="⚠" label="COMPLICACIONES" value={state.stats.complications} max={5} />
+              <StatBar icon="☠" label="IATROGENIA" value={state.stats.iatrogenia} max={3} />
+            </div>
+          </div>
+
+          <div className="patientMiniCard">
+            <strong>A.R.M.</strong>
+            <span>21 años · Masculino</span>
+            <span>Sospecha: Sarampión</span>
+          </div>
+        </div>
+
         <div className="turnCallout">
           <p className="turnCallout__label">TURNO {turn.id + 1} DE {turns.length}</p>
           <p className="turnCallout__body">{turn.scene}</p>
           <p className="turnCallout__question">¿Qué decides hacer?</p>
         </div>
 
-        <div className="patientStage__monitor">
-          <div className={`monitor ${visualClass}`}>
-            <div className="monitor__header">
-              <span>Monitor de cabecera</span>
-              <strong>{state.visualState.replace("respiratory distress", "distress")}</strong>
+        <div className="clinicalScene">
+          <div className="patientStage__monitor">
+            <div className={`monitor ${visualClass}`}>
+              <div className="monitor__header">
+                <span>Monitor de cabecera</span>
+                <strong>{state.visualState.replace("respiratory distress", "distress")}</strong>
+              </div>
+              <div className="monitorAlarm" aria-hidden="true" />
+              <div className="monitorWave" />
+              <div className="vitalsGrid vitalsGrid--compact">
+                <VitalPill label="HR" value={`${state.vitals.hr} bpm`} tone="neutral" />
+                <VitalPill label="RR" value={`${state.vitals.rr}/min`} tone={state.vitals.rr >= 28 ? "danger" : "neutral"} />
+                <VitalPill label="Temp" value={`${state.vitals.temperature.toFixed(1)} C`} tone={state.vitals.temperature >= 39 ? "warning" : "neutral"} />
+                <VitalPill label="SpO2" value={`${state.vitals.spo2}%`} tone={state.vitals.spo2 <= 92 ? "danger" : "neutral"} />
+                <VitalPill label="BP" value={state.vitals.bp} tone="neutral" />
+              </div>
             </div>
-            <div className="monitorAlarm" aria-hidden="true" />
-            <div className="monitorWave" />
-            <div className="vitalsGrid vitalsGrid--compact">
-              <VitalPill label="HR" value={`${state.vitals.hr} bpm`} tone="neutral" />
-              <VitalPill label="RR" value={`${state.vitals.rr}/min`} tone={state.vitals.rr >= 28 ? "danger" : "neutral"} />
-              <VitalPill label="Temp" value={`${state.vitals.temperature.toFixed(1)} C`} tone={state.vitals.temperature >= 39 ? "warning" : "neutral"} />
-              <VitalPill label="SpO2" value={`${state.vitals.spo2}%`} tone={state.vitals.spo2 <= 92 ? "danger" : "neutral"} />
-              <VitalPill label="BP" value={state.vitals.bp} tone="neutral" />
-            </div>
+          </div>
+
+          <div className="patientStage__body">
+            <PatientIllustration state={state} />
           </div>
         </div>
 
@@ -381,10 +399,6 @@ export default function App() {
             <span className="contagionParticle contagionParticle--three" />
           </div>
         )}
-
-        <div className="patientStage__body">
-          <PatientIllustration state={state} />
-        </div>
 
         <div className={`resultStrip ${outcomeTone} ${currentOutcome ? "visible" : ""}`}>
           <strong>{currentOutcome?.title ?? "Caso en curso"}</strong>
@@ -500,18 +514,6 @@ export default function App() {
           ))}
         </div>
       </motion.section>
-
-      <motion.nav className="bottomNav" aria-label="Secciones" {...fadeUp}>
-        <motion.button type="button" className="bottomNav__item active" {...tapFeedback}>
-          <span>Paciente</span>
-        </motion.button>
-        <motion.button type="button" className="bottomNav__item" {...tapFeedback}>
-          <span>Objetivos</span>
-        </motion.button>
-        <motion.button type="button" className="bottomNav__item" {...tapFeedback}>
-          <span>Resultados</span>
-        </motion.button>
-      </motion.nav>
     </motion.div>
   );
 }
