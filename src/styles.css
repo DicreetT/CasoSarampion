@@ -1,0 +1,789 @@
+:root {
+  color-scheme: dark;
+  --bg: #08111b;
+  --bg-soft: rgba(8, 17, 27, 0.78);
+  --panel: rgba(14, 25, 38, 0.84);
+  --panel-strong: rgba(20, 34, 50, 0.94);
+  --line: rgba(161, 183, 208, 0.16);
+  --text: #ebf2fb;
+  --muted: #aab8c9;
+  --accent: #ff6b5a;
+  --accent-2: #6dcff6;
+  --safe: #52d273;
+  --warning: #f0bb3f;
+  --danger: #ff667c;
+  --shadow: 0 26px 80px rgba(0, 0, 0, 0.36);
+  --radius-xl: 28px;
+  --radius-lg: 22px;
+  --radius-md: 16px;
+  font-family: "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  background:
+    radial-gradient(circle at top left, rgba(109, 207, 246, 0.2), transparent 35%),
+    radial-gradient(circle at top right, rgba(255, 107, 90, 0.2), transparent 30%),
+    linear-gradient(180deg, #060c14 0%, #0a1622 50%, #070b11 100%);
+  color: var(--text);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.appShell {
+  position: relative;
+  min-height: 100vh;
+  padding: 24px;
+  overflow: hidden;
+}
+
+.backgroundGrid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: radial-gradient(circle at center, black 58%, transparent 100%);
+  pointer-events: none;
+}
+
+.topBar,
+.gameLayout,
+.pocketPanel {
+  position: relative;
+  z-index: 1;
+}
+
+.topBar {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 6px;
+  font-size: clamp(2rem, 4vw, 3.3rem);
+  line-height: 0.98;
+}
+
+.subtitle {
+  max-width: 760px;
+  margin-bottom: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.turnBadge {
+  min-width: 120px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(12, 21, 33, 0.72);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow);
+}
+
+.turnBadge span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.turnBadge strong {
+  font-size: 1.25rem;
+}
+
+.gameLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.85fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.hudPanel,
+.monitorPanel,
+.pocketPanel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--panel);
+  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow);
+}
+
+.hudPanel {
+  padding: 20px;
+  overflow: hidden;
+}
+
+.hudPanel__top {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.hudBlock {
+  display: grid;
+  gap: 10px;
+}
+
+.statBar {
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(9, 16, 25, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.statBar__top {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 0.94rem;
+}
+
+.statBar__track {
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.statBar__fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 220ms ease, filter 220ms ease;
+}
+
+.statBar__fill.safe {
+  background: linear-gradient(90deg, #3acb71, #8ee8a3);
+}
+
+.statBar__fill.warning {
+  background: linear-gradient(90deg, #d8ad2a, #ffd46b);
+}
+
+.statBar__fill.danger {
+  background: linear-gradient(90deg, #ff5d74, #ff8da0);
+}
+
+.turnNarrative {
+  margin-top: 18px;
+  padding: 18px;
+  border-radius: 24px;
+  background:
+    linear-gradient(145deg, rgba(109, 207, 246, 0.1), transparent 40%),
+    rgba(12, 20, 31, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.turnNarrative__label,
+.storyCard__title,
+.patientCard__label,
+.outcomeCard__label {
+  margin-bottom: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.72rem;
+}
+
+.turnNarrative h2 {
+  margin-bottom: 10px;
+  font-size: 1.5rem;
+}
+
+.turnNarrative p:last-child {
+  margin-bottom: 0;
+  color: #d8e3f2;
+  line-height: 1.55;
+}
+
+.stretcherStage {
+  position: relative;
+  min-height: 300px;
+  margin-top: 18px;
+  border-radius: 26px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.12), transparent 44%),
+    linear-gradient(180deg, rgba(12, 20, 31, 0.84), rgba(7, 12, 19, 0.96));
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.stretcherShadow {
+  position: absolute;
+  inset: auto 10% 16px 10%;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.28);
+  filter: blur(16px);
+}
+
+.stretcherRail {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(232, 242, 255, 0.25), rgba(232, 242, 255, 0.6), rgba(232, 242, 255, 0.25));
+}
+
+.stretcherRail--top {
+  top: 90px;
+}
+
+.stretcherRail--bottom {
+  bottom: 86px;
+}
+
+.patientFigure {
+  position: absolute;
+  inset: 58px auto auto 50%;
+  width: 280px;
+  height: 170px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.patientFigure__head,
+.patientFigure__torso,
+.patientFigure__legs {
+  position: absolute;
+  background: linear-gradient(180deg, #f1c7ad, #e9b593);
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.06);
+}
+
+.patientFigure__head {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.patientFigure__torso {
+  width: 120px;
+  height: 72px;
+  border-radius: 30px 30px 22px 22px;
+  top: 54px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-4deg);
+}
+
+.patientFigure__legs {
+  width: 132px;
+  height: 28px;
+  border-radius: 18px;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) rotate(5deg);
+}
+
+.patientFigure__pulse {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.8);
+  transform: translate(-50%, -50%);
+}
+
+.clinicalOverlay {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(7, 13, 19, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(10px);
+}
+
+.clinicalOverlay span {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.clinicalOverlay strong {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+}
+
+.storyCard {
+  margin-top: 18px;
+  padding: 18px;
+  border-radius: 24px;
+  background: var(--panel-strong);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.storyCard p:last-child {
+  color: #dce7f2;
+  line-height: 1.55;
+}
+
+.storyCard__log {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.storyCard__log span {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.monitorPanel {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+
+.monitor {
+  position: relative;
+  padding: 16px;
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(10, 17, 25, 0.96), rgba(10, 18, 27, 0.86)),
+    radial-gradient(circle at top, rgba(109, 207, 246, 0.08), transparent 42%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.monitor__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+
+.monitor__header strong {
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.73rem;
+}
+
+.monitorWave {
+  height: 60px;
+  margin: 10px 0 14px;
+  border-radius: 16px;
+  background:
+    linear-gradient(90deg, transparent 0 7%, rgba(82, 210, 115, 0.8) 7% 9%, transparent 9% 13%, rgba(82, 210, 115, 0.75) 13% 15%, transparent 15% 100%),
+    radial-gradient(circle at 20% 40%, rgba(82, 210, 115, 0.45), transparent 28%);
+  background-size: 100% 100%;
+  filter: drop-shadow(0 0 10px rgba(82, 210, 115, 0.35));
+}
+
+.vitalsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.vitalPill {
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.vitalPill span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin-bottom: 4px;
+}
+
+.vitalPill strong {
+  font-size: 1rem;
+}
+
+.vitalPill.danger strong {
+  color: #ff8798;
+}
+
+.vitalPill.warning strong {
+  color: #ffd46b;
+}
+
+.patientCard,
+.outcomeCard {
+  padding: 16px;
+  border-radius: 24px;
+  background: rgba(8, 15, 23, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.patientCard strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 1.1rem;
+}
+
+.patientCard p:last-child,
+.outcomeCard p:last-child {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.patientCard__miniStats {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  color: #dbe7f5;
+}
+
+.patientCard__miniStats span {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.patientCard__miniStats b {
+  color: var(--text);
+}
+
+.outcomeCard strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 1.15rem;
+}
+
+.outcomeCard.positive {
+  border-color: rgba(82, 210, 115, 0.35);
+  background: linear-gradient(180deg, rgba(21, 45, 30, 0.7), rgba(8, 15, 23, 0.72));
+}
+
+.outcomeCard.warning {
+  border-color: rgba(240, 187, 63, 0.35);
+  background: linear-gradient(180deg, rgba(48, 35, 14, 0.72), rgba(8, 15, 23, 0.72));
+}
+
+.outcomeCard.danger {
+  border-color: rgba(255, 102, 124, 0.35);
+  background: linear-gradient(180deg, rgba(57, 16, 24, 0.72), rgba(8, 15, 23, 0.72));
+}
+
+.pocketPanel {
+  margin-top: 18px;
+  padding: 18px;
+}
+
+.pocketPanel__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.pocketPanel__head h3 {
+  margin-bottom: 0;
+  font-size: 1.1rem;
+  color: #e7f0fb;
+}
+
+.ghostButton,
+.primaryButton,
+.tabButton,
+.optionCard {
+  border: 0;
+}
+
+.ghostButton {
+  padding: 11px 14px;
+  border-radius: 14px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.tabRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.tabButton {
+  padding: 11px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+  transition: transform 180ms ease, background 180ms ease, color 180ms ease;
+}
+
+.tabButton.active {
+  background: linear-gradient(90deg, rgba(109, 207, 246, 0.22), rgba(255, 107, 90, 0.22));
+  color: var(--text);
+}
+
+.tabButton:hover,
+.optionCard:hover,
+.ghostButton:hover,
+.primaryButton:hover {
+  transform: translateY(-1px);
+}
+
+.pocketContent {
+  min-height: 240px;
+}
+
+.optionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.optionCard {
+  padding: 14px 14px 16px;
+  border-radius: 20px;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  min-height: 86px;
+}
+
+.optionCard span {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+
+.optionCard small {
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.optionCard.active {
+  border-color: rgba(109, 207, 246, 0.45);
+  background: linear-gradient(180deg, rgba(109, 207, 246, 0.12), rgba(255, 255, 255, 0.05));
+}
+
+.doseInput {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.doseInput span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.doseInput input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(9, 14, 22, 0.95);
+  color: var(--text);
+}
+
+.actionDock {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.primaryButton {
+  padding: 14px 18px;
+  border-radius: 18px;
+  background: linear-gradient(90deg, #ff6b5a, #6dcff6);
+  color: #07111b;
+  font-weight: 800;
+}
+
+.primaryButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.dockHint {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.is-fever .patientFigure,
+.is-dehydrated .patientFigure,
+.is-respiratory .patientFigure,
+.is-critical .patientFigure,
+.is-improved .patientFigure {
+  animation: slightFloat 4.2s ease-in-out infinite;
+}
+
+.is-fever .stretcherStage {
+  box-shadow: inset 0 0 0 1px rgba(255, 107, 90, 0.08), 0 0 50px rgba(255, 77, 77, 0.12);
+}
+
+.is-fever .patientFigure__head,
+.is-fever .patientFigure__torso,
+.is-fever .patientFigure__legs {
+  filter: drop-shadow(0 0 28px rgba(255, 107, 90, 0.36));
+}
+
+.is-dehydrated .patientFigure {
+  filter: saturate(0.82) contrast(0.94);
+}
+
+.is-dehydrated .clinicalOverlay {
+  background: rgba(58, 42, 18, 0.58);
+}
+
+.is-respiratory .monitorWave {
+  background:
+    linear-gradient(90deg, transparent 0 6%, rgba(109, 207, 246, 0.8) 6% 7%, transparent 7% 12%, rgba(109, 207, 246, 0.8) 12% 13.5%, transparent 13.5% 100%);
+  animation: pulseLine 1.2s linear infinite;
+}
+
+.is-respiratory .monitor {
+  border-color: rgba(109, 207, 246, 0.34);
+}
+
+.is-critical .monitor,
+.is-critical .stretcherStage {
+  animation: criticalPulse 1.1s ease-in-out infinite;
+}
+
+.is-critical .monitor {
+  border-color: rgba(255, 102, 124, 0.42);
+}
+
+.is-improved .patientFigure__head,
+.is-improved .patientFigure__torso,
+.is-improved .patientFigure__legs {
+  filter: saturate(1.05) brightness(1.05);
+}
+
+.is-improved .stretcherStage {
+  box-shadow: inset 0 0 0 1px rgba(82, 210, 115, 0.12), 0 0 44px rgba(82, 210, 115, 0.1);
+}
+
+.is-improved .clinicalOverlay {
+  background: rgba(21, 45, 30, 0.68);
+}
+
+@keyframes slightFloat {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-3px);
+  }
+}
+
+@keyframes pulseLine {
+  0% {
+    opacity: 0.75;
+    transform: translateX(-2%);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(0%);
+  }
+  100% {
+    opacity: 0.8;
+    transform: translateX(2%);
+  }
+}
+
+@keyframes criticalPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(255, 102, 124, 0.08);
+  }
+  50% {
+    box-shadow: 0 0 36px rgba(255, 102, 124, 0.22);
+  }
+}
+
+@media (max-width: 1080px) {
+  .gameLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .monitorPanel {
+    order: -1;
+  }
+}
+
+@media (max-width: 760px) {
+  .appShell {
+    padding: 16px;
+  }
+
+  .topBar {
+    flex-direction: column;
+  }
+
+  .hudPanel__top,
+  .optionGrid,
+  .vitalsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .pocketPanel__head {
+    flex-direction: column;
+  }
+
+  .patientFigure {
+    width: 220px;
+  }
+}
