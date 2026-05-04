@@ -53,7 +53,9 @@ button {
 
 .appShell {
   position: relative;
+  width: min(100%, 930px);
   min-height: 100dvh;
+  margin: 0 auto;
   padding: 18px;
   overflow: hidden;
 }
@@ -138,7 +140,7 @@ button {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.78fr) minmax(0, 1.12fr);
+  grid-template-columns: minmax(0, 1.08fr) minmax(270px, 0.92fr);
   gap: 14px;
   margin-bottom: 14px;
 }
@@ -159,28 +161,6 @@ button {
   overflow: hidden;
 }
 
-.introCard--title {
-  display: grid;
-  align-content: start;
-  gap: 10px;
-}
-
-.introCard--title h1 {
-  font-size: clamp(1.8rem, 4vw, 3rem);
-}
-
-.introCard--call h2 {
-  margin-bottom: 10px;
-  font-size: 1.25rem;
-  line-height: 1.2;
-}
-
-.introCard--call p:last-child {
-  margin-bottom: 0;
-  color: #d3e6d8;
-  line-height: 1.5;
-}
-
 .introCard--stats {
   display: grid;
   align-items: start;
@@ -193,7 +173,7 @@ button {
 }
 
 .compactStatGrid .statBar {
-  padding: 10px 12px;
+  padding: 12px 12px 10px;
   border-radius: 16px;
 }
 
@@ -271,9 +251,9 @@ h1 {
 
 .patientStage {
   position: relative;
-  min-height: clamp(540px, 62vh, 760px);
+  min-height: clamp(840px, 106vh, 1200px);
   margin-bottom: 14px;
-  padding: 18px;
+  padding: 18px 18px 18px;
   overflow: hidden;
   background:
     radial-gradient(circle at top left, rgba(123, 255, 138, 0.08), transparent 18%),
@@ -281,11 +261,53 @@ h1 {
     linear-gradient(180deg, rgba(14, 23, 32, 0.96), rgba(7, 12, 18, 0.98));
 }
 
+.turnCallout {
+  position: absolute;
+  top: 120px;
+  left: 50%;
+  z-index: 6;
+  width: min(520px, calc(100% - 220px));
+  padding: 16px 20px 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(123, 255, 138, 0.16);
+  background: rgba(6, 10, 14, 0.86);
+  box-shadow: var(--shadow);
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+.turnCallout__label {
+  width: fit-content;
+  margin: 0 auto 10px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  color: var(--neon);
+  border: 1px solid rgba(123, 255, 138, 0.2);
+  background: rgba(123, 255, 138, 0.08);
+  font-size: 0.86rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.turnCallout__body {
+  margin-bottom: 12px;
+  color: #f1f7f4;
+  font-size: clamp(1.1rem, 2.1vw, 1.45rem);
+  line-height: 1.45;
+}
+
+.turnCallout__question {
+  margin-bottom: 0;
+  color: #c7e1cb;
+  font-size: 0.98rem;
+}
+
 .patientStage__monitor {
   position: absolute;
-  top: 18px;
-  left: 18px;
-  width: clamp(220px, 22vw, 320px);
+  top: 220px;
+  right: 18px;
+  left: auto;
+  width: clamp(220px, 22vw, 300px);
   z-index: 5;
 }
 
@@ -293,11 +315,12 @@ h1 {
   position: relative;
   display: grid;
   place-items: center;
-  min-height: clamp(470px, 56vh, 680px);
+  min-height: clamp(720px, 80vh, 980px);
+  padding-top: 42px;
 }
 
 .patientIllustration {
-  width: min(100%, 1100px);
+  width: min(100%, 1120px);
   height: auto;
   display: block;
   filter: drop-shadow(0 24px 48px rgba(0, 0, 0, 0.28));
@@ -376,35 +399,6 @@ h1 {
   border-color: rgba(255, 102, 124, 0.28);
 }
 
-.narrativeRibbon {
-  position: relative;
-  z-index: 1;
-  margin-bottom: 14px;
-  padding: 14px 16px;
-  border-radius: 24px;
-  background: linear-gradient(180deg, rgba(5, 10, 15, 0.9), rgba(3, 7, 10, 0.92));
-  border: 1px solid rgba(123, 255, 138, 0.08);
-  box-shadow: var(--shadow);
-}
-
-.narrativeRibbon__label {
-  margin: 0 0 6px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-size: 0.72rem;
-}
-
-.narrativeRibbon__body {
-  margin: 0;
-  color: #e3f2e6;
-  line-height: 1.5;
-}
-
-.narrativeRibbon .storyCard__log {
-  margin-top: 10px;
-}
-
 .gameLayout {
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.85fr);
@@ -451,6 +445,19 @@ h1 {
   margin-bottom: 10px;
   font-size: 0.94rem;
   color: #d6f7df;
+}
+
+.statBar__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.statBar__icon {
+  font-size: 1.06rem;
+  line-height: 1;
 }
 
 .statBar__track {
@@ -904,6 +911,76 @@ h1 {
   border: 1px solid rgba(123, 255, 138, 0.08);
 }
 
+.patientCard {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.patientCard__top {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.patientCard__avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  border: 1px solid rgba(123, 255, 138, 0.16);
+  background: rgba(123, 255, 138, 0.06);
+  display: grid;
+  place-items: center;
+  color: #dfe9ec;
+  font-size: 2rem;
+}
+
+.patientCard__meta {
+  display: grid;
+  gap: 10px;
+  color: #ecf6fb;
+  font-size: 1rem;
+}
+
+.patientCard__meta span {
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.patientCard__meta span::before {
+  content: "";
+}
+
+.patientCard__divider {
+  height: 1px;
+  background: rgba(109, 207, 246, 0.34);
+  margin: 0 0 2px;
+}
+
+.patientCard strong {
+  margin-bottom: 0;
+  color: #edf7fb;
+  font-size: 1rem;
+  text-transform: none;
+}
+
+.patientCard__diagnosis {
+  margin: 0;
+  color: #ff5968;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.patientCard__summary {
+  margin-bottom: 0;
+  color: #b9ced6;
+  line-height: 1.45;
+  font-size: 0.95rem;
+}
+
 .patientCard strong {
   display: block;
   margin-bottom: 8px;
@@ -965,6 +1042,14 @@ h1 {
   gap: 16px;
   align-items: flex-start;
   margin-bottom: 14px;
+}
+
+.pocketPanel__eyebrow {
+  margin: 0 0 8px;
+  color: #9bd7da;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.74rem;
 }
 
 .pocketPanel__head h3 {
@@ -1119,11 +1204,74 @@ h1 {
   cursor: not-allowed;
 }
 
-.dockHint {
-  margin-bottom: 0;
-  color: #a8b7ae;
-  font-size: 0.88rem;
-  line-height: 1.45;
+.historyPanel {
+  position: relative;
+  z-index: 1;
+  margin-top: 14px;
+  padding: 18px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(8, 14, 20, 0.96), rgba(4, 8, 12, 0.98));
+  border: 1px solid rgba(123, 255, 138, 0.08);
+  box-shadow: var(--shadow);
+}
+
+.historyPanel__head {
+  margin-bottom: 12px;
+}
+
+.historyList {
+  display: grid;
+  gap: 12px;
+}
+
+.historyRow {
+  display: grid;
+  grid-template-columns: 112px 1fr;
+  gap: 18px;
+  align-items: center;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: rgba(3, 7, 9, 0.78);
+  border: 1px solid rgba(123, 255, 138, 0.08);
+}
+
+.historyRow strong {
+  color: #5eb4ff;
+  font-size: 1rem;
+}
+
+.historyRow span {
+  color: #d6e6d8;
+}
+
+.bottomNav {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(7, 12, 17, 0.95), rgba(4, 8, 12, 0.98));
+  border: 1px solid rgba(123, 255, 138, 0.08);
+  box-shadow: var(--shadow);
+}
+
+.bottomNav__item {
+  padding: 13px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(123, 255, 138, 0.08);
+  background: rgba(3, 7, 9, 0.72);
+  color: #a7b4b8;
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.bottomNav__item.active {
+  color: #9ee6f0;
+  background: rgba(109, 207, 246, 0.1);
+  border-color: rgba(109, 207, 246, 0.22);
 }
 
 .is-fever .patientFigure,
@@ -1370,12 +1518,8 @@ h1 {
 }
 
 @media (max-width: 1080px) {
-  .gameLayout {
-    grid-template-columns: 1fr;
-  }
-
-  .monitorPanel {
-    order: 0;
+  .appShell {
+    width: min(100%, 900px);
   }
 }
 
@@ -1384,306 +1528,27 @@ h1 {
     padding: 12px;
   }
 
-  .topBar {
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 14px;
-  }
-
-  .topBar h1 {
-    font-size: clamp(1.7rem, 8vw, 2.3rem);
-  }
-
-  .subtitle {
-    font-size: 0.96rem;
-    line-height: 1.45;
-  }
-
-  .turnBadge {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-    padding: 12px 14px;
-  }
-
-  .turnBadge span {
-    margin-bottom: 0;
-  }
-
-  .gameLayout {
-    gap: 12px;
-  }
-
-  .hudPanel,
-  .monitorPanel,
-  .pocketPanel {
-    border-radius: 22px;
-  }
-
-  .hudPanel {
-    padding: 14px;
-  }
-
-  .hudPanel__top {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  .turnNarrative {
-    margin-top: 14px;
-    padding: 14px;
-  }
-
-  .turnNarrative h2 {
-    font-size: 1.25rem;
-  }
-
-  .stretcherStage {
-    min-height: 220px;
-    margin-top: 14px;
-    border-radius: 22px;
-  }
-
-  .stretcherRail--top {
-    top: 70px;
-  }
-
-  .stretcherRail--bottom {
-    bottom: 68px;
-  }
-
-  .patientFigure {
-    width: 210px;
-    height: 142px;
-    inset: 50px auto auto 50%;
-  }
-
-  .patientFigure__head {
-    width: 42px;
-    height: 42px;
-  }
-
-  .patientFigure__torso {
-    width: 100px;
-    height: 62px;
-    top: 48px;
-  }
-
-  .patientFigure__legs {
-    width: 112px;
-    height: 26px;
-    bottom: 24px;
-  }
-
-  .clinicalOverlay {
-    left: 12px;
-    bottom: 12px;
-    padding: 10px 12px;
-    gap: 2px;
-  }
-
-  .clinicalOverlay span {
-    font-size: 0.8rem;
-  }
-
-  .clinicalOverlay strong {
-    font-size: 0.68rem;
-  }
-
-  .storyCard {
-    margin-top: 14px;
-    padding: 14px;
-  }
-
-  .storyCard__log {
-    gap: 6px;
-    margin-top: 12px;
-  }
-
-  .monitorPanel {
-    padding: 14px;
-    gap: 12px;
-  }
-
-  .monitor {
-    padding: 14px;
-    border-radius: 22px;
-  }
-
-  .monitor__header {
-    font-size: 0.84rem;
-  }
-
-  .monitorWave {
-    height: 48px;
-    margin: 8px 0 12px;
-  }
-
-  .vitalsGrid {
-    gap: 8px;
-  }
-
-  .vitalPill {
-    padding: 10px 12px;
-    border-radius: 16px;
-  }
-
-  .patientCard,
-  .outcomeCard {
-    padding: 14px;
-    border-radius: 20px;
-  }
-
-  .patientCard strong {
-    font-size: 1rem;
-  }
-
-  .patientCard__miniStats span {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-  }
-
-  .outcomeCard strong {
-    font-size: 1.05rem;
-  }
-
-  .pocketPanel {
-    margin-top: 14px;
-    padding: 14px;
-    border-radius: 22px;
-  }
-
-  .pocketPanel__head {
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 12px;
-  }
-
-  .pocketPanel__head h3 {
-    font-size: 0.98rem;
-    line-height: 1.35;
-  }
-
-  .ghostButton {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .tabRow {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 6px;
-    scrollbar-width: none;
-  }
-
-  .tabRow::-webkit-scrollbar {
-    display: none;
-  }
-
-  .tabButton {
-    flex: 0 0 auto;
-    min-height: 42px;
-    padding: 10px 14px;
-  }
-
-  .pocketContent {
-    min-height: auto;
-  }
-
-  .optionGrid {
-    gap: 10px;
-  }
-
-  .optionCard {
-    min-height: 90px;
-    padding: 12px;
-  }
-
-  .optionCard span {
-    font-size: 0.95rem;
-  }
-
-  .optionCard small {
-    font-size: 0.82rem;
-  }
-
-  .doseInput {
-    grid-column: 1 / -1;
-    padding: 12px;
-  }
-
-  .doseInput input {
-    padding: 14px;
-    font-size: 1rem;
-  }
-
-  .actionDock {
-    position: sticky;
-    bottom: 12px;
-    z-index: 2;
-    margin-top: 14px;
-    padding: 10px 10px 0;
-    background: linear-gradient(180deg, rgba(6, 12, 20, 0), rgba(6, 12, 20, 0.75) 18%, rgba(6, 12, 20, 0.95));
-    backdrop-filter: blur(8px);
-    border-radius: 18px;
-  }
-
-  .primaryButton {
-    width: 100%;
-    padding: 16px 18px;
-    border-radius: 16px;
-  }
-
-  .dockHint {
-    font-size: 0.82rem;
-    line-height: 1.35;
-  }
-}
-
-@media (max-width: 420px) {
-  .optionGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .storyCard__log span {
-    font-size: 0.75rem;
-  }
-
-  .turnNarrative h2 {
-    font-size: 1.12rem;
-  }
-
-  .turnNarrative p:last-child,
-  .patientCard p:last-child,
-  .outcomeCard p:last-child {
-    font-size: 0.94rem;
-  }
-}
-
-@media (max-width: 1080px) {
   .introGrid {
     grid-template-columns: 1fr;
   }
 
+  .patientCard__meta span {
+    grid-template-columns: 88px 1fr;
+  }
+
+  .turnCallout {
+    top: 108px;
+    width: min(520px, calc(100% - 40px));
+    padding: 14px 16px 16px;
+  }
+
   .patientStage__monitor {
+    top: 220px;
     width: min(340px, calc(100% - 36px));
   }
 
   .pocketGrid {
     grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 760px) {
-  .appShell {
-    padding: 12px;
-  }
-
-  .introGrid {
-    gap: 12px;
   }
 
   .introCard {
@@ -1691,28 +1556,19 @@ h1 {
     border-radius: 22px;
   }
 
-  .introCard--title h1 {
-    font-size: clamp(1.7rem, 8vw, 2.2rem);
-  }
-
   .compactStatGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .patientStage {
-    min-height: 480px;
+    min-height: 840px;
     padding: 14px;
     border-radius: 22px;
   }
 
-  .patientStage__monitor {
-    top: 12px;
-    left: 12px;
-    width: min(250px, calc(100% - 24px));
-  }
-
   .patientStage__body {
-    min-height: 420px;
+    min-height: 760px;
+    padding-top: 120px;
   }
 
   .resultStrip {
@@ -1740,29 +1596,41 @@ h1 {
     border-radius: 20px;
   }
 
+  .historyPanel {
+    padding: 14px;
+    border-radius: 22px;
+  }
+
+  .historyRow {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 14px;
+  }
+
+  .bottomNav {
+    grid-template-columns: 1fr;
+  }
+
   .actionDock {
-    position: sticky;
-    bottom: 10px;
-    z-index: 2;
     margin-top: 14px;
-    padding: 10px 10px 0;
-    background: linear-gradient(180deg, rgba(6, 12, 20, 0), rgba(6, 12, 20, 0.75) 18%, rgba(6, 12, 20, 0.95));
-    backdrop-filter: blur(8px);
-    border-radius: 18px;
   }
 }
 
 @media (max-width: 420px) {
+  .appShell {
+    padding: 10px;
+  }
+
   .compactStatGrid {
     grid-template-columns: 1fr;
   }
 
   .patientStage {
-    min-height: 420px;
+    min-height: 760px;
   }
 
   .patientStage__body {
-    min-height: 360px;
+    min-height: 640px;
   }
 
   .patientIllustration {
@@ -1775,6 +1643,35 @@ h1 {
 
   .vitalsGrid--compact {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .patientCard__meta span {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .patientCard__top {
+    gap: 12px;
+  }
+
+  .patientCard__avatar {
+    width: 46px;
+    height: 46px;
+    font-size: 1.6rem;
+  }
+
+  .turnCallout {
+    top: 96px;
+    width: calc(100% - 24px);
+  }
+
+  .turnCallout__body {
+    font-size: 1rem;
+  }
+
+  .patientStage__monitor {
+    top: 210px;
+    width: min(300px, calc(100% - 20px));
   }
 
   .pocketGrid {

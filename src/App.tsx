@@ -52,10 +52,12 @@ const progressColor = (value: number, max: number) => {
 };
 
 const StatBar = ({
+  icon,
   label,
   value,
   max,
 }: {
+  icon: string;
   label: string;
   value: number;
   max: number;
@@ -64,7 +66,12 @@ const StatBar = ({
   return (
     <div className="statBar">
       <div className="statBar__top">
-        <span>{label}</span>
+        <span className="statBar__label">
+          <span className="statBar__icon" aria-hidden="true">
+            {icon}
+          </span>
+          {label}
+        </span>
         <strong>
           {value}/{max}
         </strong>
@@ -288,6 +295,20 @@ export default function App() {
   const currentOutcome = state.outcome;
   const contagionOpacity = state.flags.isolated ? 0 : Math.min(0.95, state.hidden.outbreakRisk / 5);
   const contagionActive = contagionOpacity > 0.04;
+  const patientSummary = getPatientSummary(state);
+  const historyRows = [
+    {
+      label: "Turno 0",
+      value: state.eventLog[0] ?? "Aún sin decisiones tomadas.",
+    },
+    {
+      label: "Turno 1",
+      value:
+        state.turnIndex > 0
+          ? state.eventLog[1] ?? "Esperando tu decisión..."
+          : "Esperando tu decisión...",
+    },
+  ];
 
   return (
     <div className={`appShell ${visualClass}`}>
@@ -308,37 +329,40 @@ export default function App() {
         </div>
       )}
       <section className="introGrid">
-        <article className="introCard introCard--title">
-          <p className="eyebrow">Código Sarampión</p>
-          <h1>Simulador clínico por turnos</h1>
-          <p className="subtitle">
-            Un único caso, muchas decisiones. Cada jugador compite contra la fisiopatología y contra el juicio clínico.
-          </p>
-          <div className="turnBadge turnBadge--inline">
-            <span>Turno</span>
-            <strong>
-              {turn.id + 1} / {turns.length}
-            </strong>
-          </div>
-        </article>
-
         <article className="introCard introCard--stats">
           <div className="compactStatGrid">
-            <StatBar label="Vida" value={state.stats.life} max={4} />
-            <StatBar label="Fiebre" value={state.stats.fever} max={5} />
-            <StatBar label="Complicaciones" value={state.stats.complications} max={5} />
-            <StatBar label="Iatrogenia" value={state.stats.iatrogenia} max={3} />
+            <StatBar icon="❤" label="VIDA" value={state.stats.life} max={4} />
+            <StatBar icon="🌡" label="FIEBRE" value={state.stats.fever} max={5} />
+            <StatBar icon="⚠" label="COMPLICACIONES" value={state.stats.complications} max={5} />
+            <StatBar icon="☠" label="IATROGENIA" value={state.stats.iatrogenia} max={3} />
           </div>
         </article>
 
-        <article className="introCard introCard--call">
-          <p className="turnNarrative__label">{turn.label}</p>
-          <h2>{turn.scene}</h2>
-          <p>{turn.focus}</p>
+        <article className="introCard patientCard">
+          <div className="patientCard__top">
+            <div className="patientCard__avatar" aria-hidden="true">
+              <span>◔</span>
+            </div>
+            <div className="patientCard__meta">
+              <span>Paciente: A.R.M.</span>
+              <span>Edad: 21 años</span>
+              <span>Sexo: Masculino</span>
+            </div>
+          </div>
+          <div className="patientCard__divider" />
+          <strong>Sospecha diagnóstica:</strong>
+          <p className="patientCard__diagnosis">Sarampión</p>
+          <p className="patientCard__summary">{patientSummary}</p>
         </article>
       </section>
 
       <section className={`patientStage ${visualClass}`}>
+        <div className="turnCallout">
+          <p className="turnCallout__label">TURNO {turn.id + 1} DE {turns.length}</p>
+          <p className="turnCallout__body">{turn.scene}</p>
+          <p className="turnCallout__question">¿Qué decides hacer?</p>
+        </div>
+
         <div className="patientStage__monitor">
           <div className={`monitor ${visualClass}`}>
             <div className="monitor__header">
@@ -379,20 +403,10 @@ export default function App() {
         </div>
       </section>
 
-      <section className="narrativeRibbon">
-        <p className="narrativeRibbon__label">Evolución del caso</p>
-        <p className="narrativeRibbon__body">{previewText}</p>
-        <div className="storyCard__log">
-          {state.eventLog.slice().reverse().map((entry, index) => (
-            <span key={`${entry}-${index}`}>{entry}</span>
-          ))}
-        </div>
-      </section>
-
       <section className="pocketPanel">
         <div className="pocketPanel__head">
           <div>
-            <p className="eyebrow">Bolsillo médico</p>
+            <p className="pocketPanel__eyebrow">BOLSILLO MÉDICO</p>
             <h3>Medicamentos, acciones y soporte</h3>
           </div>
           <button type="button" className="ghostButton" onClick={resetGame}>
@@ -476,11 +490,36 @@ export default function App() {
 
         <div className="actionDock">
           <button type="button" className="primaryButton" onClick={submitChoice} disabled={isFinished}>
-            Aplicar decisión y avanzar
+            APLICAR DECISIÓN
           </button>
-          <p className="dockHint">Aplica una intervención y avanza al siguiente turno.</p>
         </div>
       </section>
+
+      <section className="historyPanel">
+        <div className="historyPanel__head">
+          <p className="pocketPanel__eyebrow">HISTORIAL DE DECISIONES</p>
+        </div>
+        <div className="historyList">
+          {historyRows.map((row) => (
+            <div key={row.label} className="historyRow">
+              <strong>{row.label}</strong>
+              <span>{row.value}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <nav className="bottomNav" aria-label="Secciones">
+        <button type="button" className="bottomNav__item active">
+          <span>Paciente</span>
+        </button>
+        <button type="button" className="bottomNav__item">
+          <span>Objetivos</span>
+        </button>
+        <button type="button" className="bottomNav__item">
+          <span>Resultados</span>
+        </button>
+      </nav>
     </div>
   );
 }
