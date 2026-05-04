@@ -45,6 +45,7 @@ input {
 
 button {
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .appShell {
@@ -760,30 +761,290 @@ h1 {
   }
 
   .monitorPanel {
-    order: -1;
+    order: 0;
   }
 }
 
 @media (max-width: 760px) {
   .appShell {
-    padding: 16px;
+    padding: 12px;
   }
 
   .topBar {
     flex-direction: column;
+    gap: 12px;
+    margin-bottom: 14px;
   }
 
-  .hudPanel__top,
-  .optionGrid,
-  .vitalsGrid {
+  .topBar h1 {
+    font-size: clamp(1.7rem, 8vw, 2.3rem);
+  }
+
+  .subtitle {
+    font-size: 0.96rem;
+    line-height: 1.45;
+  }
+
+  .turnBadge {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 14px;
+  }
+
+  .turnBadge span {
+    margin-bottom: 0;
+  }
+
+  .gameLayout {
+    gap: 12px;
+  }
+
+  .hudPanel,
+  .monitorPanel,
+  .pocketPanel {
+    border-radius: 22px;
+  }
+
+  .hudPanel {
+    padding: 14px;
+  }
+
+  .hudPanel__top {
     grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .turnNarrative {
+    margin-top: 14px;
+    padding: 14px;
+  }
+
+  .turnNarrative h2 {
+    font-size: 1.25rem;
+  }
+
+  .stretcherStage {
+    min-height: 220px;
+    margin-top: 14px;
+    border-radius: 22px;
+  }
+
+  .stretcherRail--top {
+    top: 70px;
+  }
+
+  .stretcherRail--bottom {
+    bottom: 68px;
+  }
+
+  .patientFigure {
+    width: 210px;
+    height: 142px;
+    inset: 50px auto auto 50%;
+  }
+
+  .patientFigure__head {
+    width: 42px;
+    height: 42px;
+  }
+
+  .patientFigure__torso {
+    width: 100px;
+    height: 62px;
+    top: 48px;
+  }
+
+  .patientFigure__legs {
+    width: 112px;
+    height: 26px;
+    bottom: 24px;
+  }
+
+  .clinicalOverlay {
+    left: 12px;
+    bottom: 12px;
+    padding: 10px 12px;
+    gap: 2px;
+  }
+
+  .clinicalOverlay span {
+    font-size: 0.8rem;
+  }
+
+  .clinicalOverlay strong {
+    font-size: 0.68rem;
+  }
+
+  .storyCard {
+    margin-top: 14px;
+    padding: 14px;
+  }
+
+  .storyCard__log {
+    gap: 6px;
+    margin-top: 12px;
+  }
+
+  .monitorPanel {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .monitor {
+    padding: 14px;
+    border-radius: 22px;
+  }
+
+  .monitor__header {
+    font-size: 0.84rem;
+  }
+
+  .monitorWave {
+    height: 48px;
+    margin: 8px 0 12px;
+  }
+
+  .vitalsGrid {
+    gap: 8px;
+  }
+
+  .vitalPill {
+    padding: 10px 12px;
+    border-radius: 16px;
+  }
+
+  .patientCard,
+  .outcomeCard {
+    padding: 14px;
+    border-radius: 20px;
+  }
+
+  .patientCard strong {
+    font-size: 1rem;
+  }
+
+  .patientCard__miniStats span {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .outcomeCard strong {
+    font-size: 1.05rem;
+  }
+
+  .pocketPanel {
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: 22px;
   }
 
   .pocketPanel__head {
     flex-direction: column;
+    gap: 10px;
+    margin-bottom: 12px;
   }
 
-  .patientFigure {
-    width: 220px;
+  .pocketPanel__head h3 {
+    font-size: 0.98rem;
+    line-height: 1.35;
+  }
+
+  .ghostButton {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .tabRow {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scrollbar-width: none;
+  }
+
+  .tabRow::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tabButton {
+    flex: 0 0 auto;
+    min-height: 42px;
+    padding: 10px 14px;
+  }
+
+  .pocketContent {
+    min-height: auto;
+  }
+
+  .optionGrid {
+    gap: 10px;
+  }
+
+  .optionCard {
+    min-height: 90px;
+    padding: 12px;
+  }
+
+  .optionCard span {
+    font-size: 0.95rem;
+  }
+
+  .optionCard small {
+    font-size: 0.82rem;
+  }
+
+  .doseInput {
+    grid-column: 1 / -1;
+    padding: 12px;
+  }
+
+  .doseInput input {
+    padding: 14px;
+    font-size: 1rem;
+  }
+
+  .actionDock {
+    position: sticky;
+    bottom: 12px;
+    z-index: 2;
+    margin-top: 14px;
+    padding: 10px 10px 0;
+    background: linear-gradient(180deg, rgba(6, 12, 20, 0), rgba(6, 12, 20, 0.75) 18%, rgba(6, 12, 20, 0.95));
+    backdrop-filter: blur(8px);
+    border-radius: 18px;
+  }
+
+  .primaryButton {
+    width: 100%;
+    padding: 16px 18px;
+    border-radius: 16px;
+  }
+
+  .dockHint {
+    font-size: 0.82rem;
+    line-height: 1.35;
+  }
+}
+
+@media (max-width: 420px) {
+  .optionGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .storyCard__log span {
+    font-size: 0.75rem;
+  }
+
+  .turnNarrative h2 {
+    font-size: 1.12rem;
+  }
+
+  .turnNarrative p:last-child,
+  .patientCard p:last-child,
+  .outcomeCard p:last-child {
+    font-size: 0.94rem;
   }
 }
