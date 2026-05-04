@@ -166,6 +166,7 @@ export default function App() {
   const [state, setState] = useState<GameState>(() => loadSavedGameState() ?? initialState);
   const [selectedAction, setSelectedAction] = useState<ActionKey | null>(null);
   const [selectedSupport, setSelectedSupport] = useState<SupportKey | null>(null);
+  const [showRotateHint, setShowRotateHint] = useState(false);
   const [previewText, setPreviewText] = useState(
     "Selecciona una intervención del pocket médico y aplica la decisión para avanzar al siguiente turno.",
   );
@@ -173,6 +174,24 @@ export default function App() {
   useEffect(() => {
     saveGameState(state);
   }, [state]);
+
+  useEffect(() => {
+    const media = window.matchMedia("(orientation: portrait)");
+
+    const updateOrientationHint = () => {
+      setShowRotateHint(media.matches && window.innerWidth < 980);
+    };
+
+    updateOrientationHint();
+
+    media.addEventListener?.("change", updateOrientationHint);
+    window.addEventListener("resize", updateOrientationHint);
+
+    return () => {
+      media.removeEventListener?.("change", updateOrientationHint);
+      window.removeEventListener("resize", updateOrientationHint);
+    };
+  }, []);
 
   const turn = getTurn(state);
   const outcomeTone = getOutcomeTone(state.outcome);
@@ -273,6 +292,21 @@ export default function App() {
   return (
     <div className={`appShell ${visualClass}`}>
       <div className="backgroundGrid" />
+      {showRotateHint && (
+        <div className="orientationOverlay" role="status" aria-live="polite">
+          <div className="orientationOverlay__card">
+            <p className="eyebrow">Modo recomendado</p>
+            <h2>Gira el móvil a horizontal</h2>
+            <p>
+              Este simulador está pensado para verse en apaisado y aprovechar mejor la camilla, el monitor y el
+              bolsillo médico.
+            </p>
+            <div className="orientationOverlay__icon" aria-hidden="true">
+              <span>↻</span>
+            </div>
+          </div>
+        </div>
+      )}
       <section className="introGrid">
         <article className="introCard introCard--title">
           <p className="eyebrow">Código Sarampión</p>
@@ -444,9 +478,7 @@ export default function App() {
           <button type="button" className="primaryButton" onClick={submitChoice} disabled={isFinished}>
             Aplicar decisión y avanzar
           </button>
-          <p className="dockHint">
-            El brote no aparece como barra visible: hay que recordarlo y deducirlo clínicamente.
-          </p>
+          <p className="dockHint">Aplica una intervención y avanza al siguiente turno.</p>
         </div>
       </section>
     </div>
