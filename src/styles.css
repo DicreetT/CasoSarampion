@@ -36,8 +36,8 @@ body {
   background:
     radial-gradient(circle at top left, rgba(123, 255, 138, 0.12), transparent 28%),
     radial-gradient(circle at top right, rgba(109, 207, 246, 0.1), transparent 30%),
-    radial-gradient(circle at center, rgba(255, 107, 90, 0.06), transparent 38%),
-    linear-gradient(180deg, #02060a 0%, #040a10 48%, #020409 100%);
+    radial-gradient(circle at center, rgba(255, 107, 90, 0.05), transparent 38%),
+    linear-gradient(180deg, #06111b 0%, #081521 48%, #04090f 100%);
   color: var(--text);
 }
 
@@ -54,7 +54,7 @@ button {
 .appShell {
   position: relative;
   min-height: 100vh;
-  padding: 24px;
+  padding: 18px;
   overflow: hidden;
 }
 
@@ -74,6 +74,84 @@ button {
 .pocketPanel {
   position: relative;
   z-index: 1;
+}
+
+.introGrid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.78fr) minmax(0, 1.12fr);
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.introCard,
+.pocketColumn,
+.patientStage,
+.monitor {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--panel);
+  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow);
+}
+
+.introCard {
+  padding: 16px;
+  overflow: hidden;
+}
+
+.introCard--title {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.introCard--title h1 {
+  font-size: clamp(1.8rem, 4vw, 3rem);
+}
+
+.introCard--call h2 {
+  margin-bottom: 10px;
+  font-size: 1.25rem;
+  line-height: 1.2;
+}
+
+.introCard--call p:last-child {
+  margin-bottom: 0;
+  color: #d3e6d8;
+  line-height: 1.5;
+}
+
+.introCard--stats {
+  display: grid;
+  align-items: start;
+}
+
+.compactStatGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.compactStatGrid .statBar {
+  padding: 10px 12px;
+  border-radius: 16px;
+}
+
+.compactStatGrid .statBar__top {
+  margin-bottom: 8px;
+  font-size: 0.82rem;
+}
+
+.compactStatGrid .statBar__track {
+  height: 8px;
+}
+
+.turnBadge--inline {
+  width: fit-content;
+  min-width: 0;
+  margin-top: 4px;
 }
 
 .topBar {
@@ -131,6 +209,142 @@ h1 {
 
 .turnBadge strong {
   font-size: 1.25rem;
+}
+
+.patientStage {
+  position: relative;
+  min-height: clamp(540px, 62vh, 760px);
+  margin-bottom: 14px;
+  padding: 18px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top left, rgba(123, 255, 138, 0.08), transparent 18%),
+    radial-gradient(circle at bottom right, rgba(109, 207, 246, 0.08), transparent 18%),
+    linear-gradient(180deg, rgba(14, 23, 32, 0.96), rgba(7, 12, 18, 0.98));
+}
+
+.patientStage__monitor {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  width: clamp(220px, 22vw, 320px);
+  z-index: 5;
+}
+
+.patientStage__body {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: clamp(470px, 56vh, 680px);
+}
+
+.patientIllustration {
+  width: min(100%, 1100px);
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 24px 48px rgba(0, 0, 0, 0.28));
+}
+
+.patientIllustration__figure {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.is-fever .patientIllustration {
+  filter: drop-shadow(0 24px 48px rgba(0, 0, 0, 0.28)) saturate(1.05) hue-rotate(-8deg);
+}
+
+.is-fever .patientIllustration__figure {
+  animation: feverJitter 1.2s ease-in-out infinite;
+}
+
+.is-dehydrated .patientIllustration {
+  filter: grayscale(0.15) saturate(0.7) brightness(1.05);
+}
+
+.is-respiratory .patientIllustration__figure {
+  animation: breatheLoop 0.75s ease-in-out infinite;
+}
+
+.is-critical .patientStage {
+  animation: criticalPulse 1.1s ease-in-out infinite;
+}
+
+.is-critical .patientIllustration {
+  filter: brightness(0.78) saturate(0.85);
+}
+
+.resultStrip {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 18px;
+  z-index: 5;
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(4, 8, 12, 0.72);
+  border: 1px solid rgba(123, 255, 138, 0.08);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.resultStrip.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.resultStrip strong {
+  font-size: 1rem;
+}
+
+.resultStrip p {
+  margin-bottom: 0;
+  color: #cfe2d2;
+  line-height: 1.45;
+}
+
+.resultStrip.positive {
+  border-color: rgba(123, 255, 138, 0.26);
+}
+
+.resultStrip.warning {
+  border-color: rgba(240, 187, 63, 0.28);
+}
+
+.resultStrip.danger {
+  border-color: rgba(255, 102, 124, 0.28);
+}
+
+.narrativeRibbon {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(5, 10, 15, 0.9), rgba(3, 7, 10, 0.92));
+  border: 1px solid rgba(123, 255, 138, 0.08);
+  box-shadow: var(--shadow);
+}
+
+.narrativeRibbon__label {
+  margin: 0 0 6px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.72rem;
+}
+
+.narrativeRibbon__body {
+  margin: 0;
+  color: #e3f2e6;
+  line-height: 1.5;
+}
+
+.narrativeRibbon .storyCard__log {
+  margin-top: 10px;
 }
 
 .gameLayout {
@@ -531,6 +745,14 @@ h1 {
   overflow: hidden;
 }
 
+.patientStage__monitor .monitor {
+  width: 100%;
+  padding: 14px;
+  background:
+    linear-gradient(180deg, rgba(4, 9, 12, 0.98), rgba(6, 13, 9, 0.9)),
+    radial-gradient(circle at top, rgba(123, 255, 138, 0.1), transparent 42%);
+}
+
 .monitor__header {
   display: flex;
   justify-content: space-between;
@@ -578,6 +800,10 @@ h1 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.vitalsGrid--compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .vitalPill {
@@ -687,6 +913,28 @@ h1 {
   margin-bottom: 0;
   font-size: 1.1rem;
   color: #defee4;
+}
+
+.pocketGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.pocketColumn {
+  padding: 14px;
+}
+
+.pocketColumn__title {
+  margin: 0 0 12px;
+  color: var(--neon);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.74rem;
+}
+
+.optionGrid--stack {
+  grid-template-columns: 1fr;
 }
 
 .ghostButton,
@@ -1344,5 +1592,159 @@ h1 {
   .patientCard p:last-child,
   .outcomeCard p:last-child {
     font-size: 0.94rem;
+  }
+}
+
+@media (max-width: 1080px) {
+  .introGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .patientStage__monitor {
+    width: min(340px, calc(100% - 36px));
+  }
+
+  .pocketGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .appShell {
+    padding: 12px;
+  }
+
+  .introGrid {
+    gap: 12px;
+  }
+
+  .introCard {
+    padding: 14px;
+    border-radius: 22px;
+  }
+
+  .introCard--title h1 {
+    font-size: clamp(1.7rem, 8vw, 2.2rem);
+  }
+
+  .compactStatGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .patientStage {
+    min-height: 480px;
+    padding: 14px;
+    border-radius: 22px;
+  }
+
+  .patientStage__monitor {
+    top: 12px;
+    left: 12px;
+    width: min(250px, calc(100% - 24px));
+  }
+
+  .patientStage__body {
+    min-height: 420px;
+  }
+
+  .resultStrip {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    padding: 10px 12px;
+  }
+
+  .pocketPanel {
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: 22px;
+  }
+
+  .pocketPanel__head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .pocketColumn {
+    padding: 12px;
+    border-radius: 20px;
+  }
+
+  .actionDock {
+    position: sticky;
+    bottom: 10px;
+    z-index: 2;
+    margin-top: 14px;
+    padding: 10px 10px 0;
+    background: linear-gradient(180deg, rgba(6, 12, 20, 0), rgba(6, 12, 20, 0.75) 18%, rgba(6, 12, 20, 0.95));
+    backdrop-filter: blur(8px);
+    border-radius: 18px;
+  }
+}
+
+@media (max-width: 420px) {
+  .compactStatGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .patientStage {
+    min-height: 420px;
+  }
+
+  .patientStage__body {
+    min-height: 360px;
+  }
+
+  .patientIllustration {
+    width: 108%;
+  }
+
+  .monitor__header {
+    font-size: 0.8rem;
+  }
+
+  .vitalsGrid--compact {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .pocketGrid {
+    gap: 12px;
+  }
+
+  .optionCard {
+    min-height: 82px;
+    padding: 12px;
+  }
+
+  .primaryButton {
+    font-size: 0.98rem;
+  }
+}
+
+@keyframes feverJitter {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-2px) rotate(-0.2deg);
+  }
+  50% {
+    transform: translateY(1px) rotate(0.2deg);
+  }
+  75% {
+    transform: translateY(-1px) rotate(-0.1deg);
+  }
+}
+
+@keyframes breatheLoop {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.012);
   }
 }

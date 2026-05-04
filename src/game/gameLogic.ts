@@ -101,7 +101,7 @@ export const turns: TurnDefinition[] = [
     id: 0,
     label: "Llamada desde el coffee break",
     scene: "Paciente de 21 años con fiebre, tos, coriza, conjuntivitis y exantema.",
-    focus: "La primera impresión clínica debe activar aislamiento y EPI antes de moverlo.",
+    focus: "Caso en evolución desde el coffee break. Lee la escena con calma antes de decidir.",
   },
   {
     id: 1,
