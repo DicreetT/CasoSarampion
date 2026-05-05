@@ -112,8 +112,11 @@ const PatientIllustration = ({ state }: { state: GameState }) => {
   const svgState = state.visualState;
   const assetBase = `${import.meta.env.BASE_URL}assets/images/`;
   const normalImage = `${assetBase}normal.png`;
+  const feverImage = `${assetBase}fever.png`;
   const [imageSrc, setImageSrc] = useState(normalImage);
   const getPatientImage = () => {
+    if (state.turnIndex === 0) return normalImage;
+    if (state.turnIndex === 1) return feverImage;
     if (state.stats.life <= 1) return `${assetBase}critical.png`;
     if (state.stats.complications > 3) return `${assetBase}respiratory.png`;
     if (state.stats.fever > 3) return `${assetBase}fever.png`;
@@ -128,7 +131,7 @@ const PatientIllustration = ({ state }: { state: GameState }) => {
 
   useEffect(() => {
     setImageSrc(getPatientImage());
-  }, [svgState]);
+  }, [state.turnIndex, state.stats.life, state.stats.complications, state.stats.fever, svgState]);
 
   return (
     <div className="patientIllustrationFrame">
@@ -151,6 +154,7 @@ const PatientIllustration = ({ state }: { state: GameState }) => {
 export default function App() {
   const [state, setState] = useState<GameState>(() => loadSavedGameState() ?? initialState);
   const [selectedChoices, setSelectedChoices] = useState<TurnChoice[]>([]);
+  const [turnHistory, setTurnHistory] = useState<GameState[]>([]);
   const [previewText, setPreviewText] = useState(
     "Selecciona una intervención del pocket médico y aplica la decisión para avanzar al siguiente turno.",
   );
@@ -185,7 +189,19 @@ export default function App() {
     clearSavedGameState();
     setState(fresh);
     setSelectedChoices([]);
+    setTurnHistory([]);
     setPreviewText("Selecciona una intervención del pocket médico y aplica la decisión para avanzar al siguiente turno.");
+  };
+
+  const goBackTurn = () => {
+    setTurnHistory((current) => {
+      if (!current.length) return current;
+      const previous = current[current.length - 1];
+      setState(previous);
+      setSelectedChoices([]);
+      setPreviewText("Volviste al turno anterior. Ajusta la decisión antes de seguir.");
+      return current.slice(0, -1);
+    });
   };
 
   const hasChoice = (choice: TurnChoice) => selectedChoices.some((item) => choiceId(item) === choiceId(choice));
@@ -210,6 +226,7 @@ export default function App() {
       setPreviewText(getActionOutcomePreview({ kind: "medication", key, doseMg: state.selectedDoseMg }));
       return [...current, updatedChoice];
     });
+    setState((current) => ({ ...current, selectedMedication: key }));
   };
 
   const toggleActionChoice = (key: ActionKey) => {
@@ -265,6 +282,7 @@ export default function App() {
       ),
     );
 
+    setTurnHistory((current) => [...current, state]);
     setState({ ...next, selectedMedication: null, selectedDoseMg: "500" });
     setSelectedChoices([]);
     setPreviewText(next.narrative);
@@ -298,7 +316,18 @@ export default function App() {
       <main className="simulatorFrame">
         <section className={`heroScene ${visualClass}`}>
           <div className="turnBanner">
-            <span>TURNO {turn.id} DE {turns.length}</span>
+            <div className="turnBanner__head">
+              <span>TURNO {turn.id} DE {turns.length}</span>
+              <motion.button
+                type="button"
+                className="turnBackButton"
+                onClick={goBackTurn}
+                disabled={!turnHistory.length}
+                {...tapFeedback}
+              >
+                Volver al anterior
+              </motion.button>
+            </div>
             <p>{turn.scene}</p>
             <strong>¿Qué decides hacer?</strong>
           </div>
@@ -393,17 +422,23 @@ export default function App() {
                   step="50"
                   value={state.selectedDoseMg}
                   onChange={(event) => {
+                    const dose = event.target.value;
                     setState((current) => ({
                       ...current,
-                      selectedDoseMg: event.target.value,
+                      selectedDoseMg: dose,
                     }));
+                    setSelectedChoices((current) =>
+                      current.map((choice) =>
+                        choice.kind === "medication" ? { ...choice, doseMg: dose } : choice,
+                      ),
+                    );
 
                     if (state.selectedMedication) {
                       setPreviewText(
                         getActionOutcomePreview({
                           kind: "medication",
                           key: state.selectedMedication,
-                          doseMg: event.target.value,
+                          doseMg: dose,
                         }),
                       );
                     }

@@ -138,11 +138,18 @@ button {
   text-align: center;
 }
 
+.turnBanner__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
 .turnBanner span {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 12px;
   padding: 7px 14px;
   border-radius: 999px;
   color: var(--neon);
@@ -151,6 +158,27 @@ button {
   text-transform: uppercase;
   letter-spacing: 0.12em;
   font-size: 0.82rem;
+}
+
+.turnBackButton {
+  border: 1px solid rgba(123, 255, 138, 0.18);
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: rgba(5, 10, 15, 0.82);
+  color: #d8fae0;
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.turnBackButton:hover:not(:disabled) {
+  border-color: rgba(123, 255, 138, 0.34);
+  background: rgba(123, 255, 138, 0.12);
+}
+
+.turnBackButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .turnBanner p {
