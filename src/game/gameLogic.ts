@@ -117,9 +117,9 @@ export const turns: TurnDefinition[] = [
   },
   {
     id: 2,
-    label: "R1 pauta amoxicilina",
-    scene: "Un residente junior pauta amoxicilina por una hipótesis de faringitis bacteriana.",
-    focus: "Aquí la duda antibiótica suele traducirse en más complicaciones.",
+    label: "R1 pauta corticoides",
+    scene: "Un residente junior pauta corticoides por una hipótesis de faringitis bacteriana.",
+    focus: "Aquí la duda antiinflamatoria suele traducirse en más complicaciones.",
   },
   {
     id: 3,
@@ -610,7 +610,7 @@ const applyTurnPressure = (state: GameState) => {
     if (!next.flags.turn2AntibioticApplied) {
       stats.complications = clamp(stats.complications + 2, 0, MAX_COMPLICATIONS);
       next.flags.turn2AntibioticApplied = true;
-      addLog(next, "El residente junior pauta amoxicilina y el caso suma dos complicaciones de entrada.");
+      addLog(next, "El residente junior pauta corticoides y el caso suma dos complicaciones de entrada.");
     }
     if (!next.flags.publicHealthNotified) {
       hidden.outbreakRisk = clamp(hidden.outbreakRisk + 1, 0, 4);
@@ -672,7 +672,7 @@ export const advanceTurn = (state: GameState) => {
   if (progressed.turnIndex === 2 && !progressed.flags.turn2AntibioticApplied) {
     progressed.stats.complications = clamp(progressed.stats.complications + 2, 0, MAX_COMPLICATIONS);
     progressed.flags.turn2AntibioticApplied = true;
-    addLog(progressed, "El residente junior pauta amoxicilina y el caso suma dos complicaciones de entrada.");
+    addLog(progressed, "El residente junior pauta corticoides y el caso suma dos complicaciones de entrada.");
     progressed.visualState = getVisualState(progressed);
   }
 
