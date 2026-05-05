@@ -14,7 +14,14 @@ import {
   type SupportKey,
   type TurnChoice,
 } from "./game/gameLogic";
-import { clearSavedGameState, loadSavedGameState, saveGameState } from "./services/sessionStore";
+import {
+  clearSavedGameState,
+  clearSavedTurnHistory,
+  loadSavedGameState,
+  loadSavedTurnHistory,
+  saveGameState,
+  saveTurnHistory,
+} from "./services/sessionStore";
 
 const medicationOptions: Array<{ key: MedicationKey; label: string; help: string }> = [
   { key: "paracetamol", label: "Paracetamol", help: "Antitérmico con ajuste de dosis" },
@@ -154,7 +161,7 @@ const PatientIllustration = ({ state }: { state: GameState }) => {
 export default function App() {
   const [state, setState] = useState<GameState>(() => loadSavedGameState() ?? initialState);
   const [selectedChoices, setSelectedChoices] = useState<TurnChoice[]>([]);
-  const [turnHistory, setTurnHistory] = useState<GameState[]>([]);
+  const [turnHistory, setTurnHistory] = useState<GameState[]>(() => loadSavedTurnHistory());
   const [previewText, setPreviewText] = useState(
     "Selecciona una intervención del pocket médico y aplica la decisión para avanzar al siguiente turno.",
   );
@@ -162,6 +169,10 @@ export default function App() {
   useEffect(() => {
     saveGameState(state);
   }, [state]);
+
+  useEffect(() => {
+    saveTurnHistory(turnHistory);
+  }, [turnHistory]);
 
   const turn = getTurn(state);
   const outcomeTone = getOutcomeTone(state.outcome);
@@ -187,6 +198,7 @@ export default function App() {
   const resetGame = () => {
     const fresh = createInitialState();
     clearSavedGameState();
+    clearSavedTurnHistory();
     setState(fresh);
     setSelectedChoices([]);
     setTurnHistory([]);
@@ -195,7 +207,14 @@ export default function App() {
 
   const goBackTurn = () => {
     setTurnHistory((current) => {
-      if (!current.length) return current;
+      if (!current.length) {
+        const fresh = createInitialState();
+        setState(fresh);
+        setSelectedChoices([]);
+        setPreviewText("No había historial guardado, así que volvimos al inicio del caso.");
+        return current;
+      }
+
       const previous = current[current.length - 1];
       setState(previous);
       setSelectedChoices([]);
@@ -322,7 +341,6 @@ export default function App() {
                 type="button"
                 className="turnBackButton"
                 onClick={goBackTurn}
-                disabled={!turnHistory.length}
                 {...tapFeedback}
               >
                 Volver al anterior
