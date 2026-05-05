@@ -11,13 +11,11 @@ export type VisualState =
 export type OutcomeId =
   | "manejo_excellent"
   | "brote_hospitalario"
-  | "iatrogenia_alta"
   | "complicacion_grave"
   | "manejo_incompleto";
 
 export interface Stats {
   life: number;
-  iatrogenia: number;
   complications: number;
   fever: number;
 }
@@ -114,13 +112,13 @@ export const turns: TurnDefinition[] = [
     id: 1,
     label: "Fiebre 39.5 C",
     scene: "La temperatura sube y la sala empieza a parecer demasiado pequeña.",
-    focus: "El control sintomático puede ayudar, pero hay que evitar iatrogenia.",
+    focus: "El control sintomático puede ayudar, pero hay que evitar complicaciones.",
   },
   {
     id: 2,
     label: "R1 pauta amoxicilina",
     scene: "Un residente junior pauta amoxicilina por una hipótesis de faringitis bacteriana.",
-    focus: "Aquí la duda antibiótica suele traducirse en iatrogenia.",
+    focus: "Aquí la duda antibiótica suele traducirse en más complicaciones.",
   },
   {
     id: 3,
@@ -157,31 +155,18 @@ const MAX_COMPLICATIONS = 4;
 const applyThresholdPenalties = (previousStats: Stats, stats: Stats) => {
   const nextStats = { ...stats };
   const messages: string[] = [];
-  let complicationsPenaltyApplied = false;
-
-  const maybeApplyComplicationsPenalty = () => {
-    if (!complicationsPenaltyApplied && previousStats.complications < MAX_COMPLICATIONS && nextStats.complications >= MAX_COMPLICATIONS) {
-      nextStats.life = clamp(nextStats.life - 1, 0, 4);
-      complicationsPenaltyApplied = true;
-      messages.push("Las complicaciones llenan su barra y pasan factura.");
-    }
-  };
 
   if (previousStats.fever < MAX_FEVER && nextStats.fever >= MAX_FEVER) {
     nextStats.life = clamp(nextStats.life - 1, 0, 4);
     nextStats.complications = clamp(nextStats.complications + 2, 0, MAX_COMPLICATIONS);
     messages.push("La fiebre llena su barra y arrastra más complicaciones.");
-    maybeApplyComplicationsPenalty();
   }
 
-  if (previousStats.iatrogenia < 3 && nextStats.iatrogenia >= 3) {
+  if (previousStats.complications < MAX_COMPLICATIONS && nextStats.complications >= MAX_COMPLICATIONS) {
     nextStats.life = clamp(nextStats.life - 1, 0, 4);
-    nextStats.complications = clamp(nextStats.complications + 2, 0, MAX_COMPLICATIONS);
-    messages.push("La iatrogenia llena su barra y deja más daño.");
-    maybeApplyComplicationsPenalty();
+    messages.push("Las complicaciones llenan su barra y pasan factura.");
   }
 
-  maybeApplyComplicationsPenalty();
   return { stats: nextStats, messages };
 };
 
@@ -195,7 +180,6 @@ export const createInitialState = (): GameState => ({
   finished: false,
   stats: {
     life: 4,
-    iatrogenia: 0,
     complications: 0,
     fever: 2,
   },
@@ -250,7 +234,7 @@ export const getPatientSummary = (state: GameState) => {
 };
 
 const getVisualState = (state: GameState): VisualState => {
-  if (state.stats.life <= 0 || state.stats.iatrogenia >= 3 || state.stats.complications >= MAX_COMPLICATIONS) {
+  if (state.stats.life <= 0 || state.stats.complications >= MAX_COMPLICATIONS) {
     return "critical";
   }
 
@@ -332,7 +316,7 @@ const addLog = (state: GameState, message: string) => {
 
 const setOutcome = (state: GameState): Outcome => {
   const overallClarity = state.flags.isolated && state.flags.ppe && state.flags.publicHealthNotified && state.flags.contactsIdentified;
-  const goodClinical = state.stats.life > 0 && state.stats.iatrogenia <= 1 && state.stats.complications <= 2 && state.stats.fever <= 2;
+  const goodClinical = state.stats.life > 0 && state.stats.complications <= 2 && state.stats.fever <= 2;
 
   if (state.stats.life <= 0) {
     return {
@@ -347,14 +331,6 @@ const setOutcome = (state: GameState): Outcome => {
       id: "brote_hospitalario",
       title: "Paciente vivo, pero causaste un brote hospitalario",
       description: "El control clínico no evitó el riesgo asistencial oculto y el caso se convierte en un problema institucional.",
-    };
-  }
-
-  if (state.stats.iatrogenia >= 3) {
-    return {
-      id: "iatrogenia_alta",
-      title: "Iatrogenia elevada",
-      description: "Las decisiones terapéuticas añadieron daño evitable al proceso.",
     };
   }
 
@@ -398,19 +374,15 @@ const applyMedication = (state: GameState, doseMg: number) => {
         next.flags.improvedAtLeastOnce = true;
         next.flags.paracetamolGiven = true;
       } else if (doseMg > 0) {
-        stats.iatrogenia = clamp(stats.iatrogenia + 1, 0, 3);
-        narrative = "La dosis fuera de rango deja iatrogenia y empeora el curso clínico.";
+        stats.complications = clamp(stats.complications + 1, 0, MAX_COMPLICATIONS);
+        narrative = "La dosis fuera de rango suma complicaciones y no deja un control limpio de la fiebre.";
       } else {
         narrative = "No se administra una dosis útil.";
       }
       break;
     }
     case "amoxicilina": {
-      stats.iatrogenia = clamp(stats.iatrogenia + 2, 0, 3);
-      if (stats.iatrogenia >= 3) {
-        stats.life = clamp(stats.life - 3, 0, 4);
-        stats.complications = clamp(stats.complications + 3, 0, MAX_COMPLICATIONS);
-      }
+      stats.complications = clamp(stats.complications + 2, 0, MAX_COMPLICATIONS);
       narrative = "El antibiótico no cambia el cuadro viral y añade ruido terapéutico.";
       if (turn === 2) {
         next.hidden.outbreakRisk = clamp(next.hidden.outbreakRisk + 1, 0, 4);
@@ -422,13 +394,13 @@ const applyMedication = (state: GameState, doseMg: number) => {
         stats.complications = clamp(stats.complications - 1, 0, MAX_COMPLICATIONS);
         narrative = "La cobertura parenteral solo encaja si sospechas complicación bacteriana real.";
       } else {
-        stats.iatrogenia = clamp(stats.iatrogenia + 1, 0, 3);
-        narrative = "El uso precoz de ceftriaxona no resuelve el escenario y sí suma iatrogenia.";
+        stats.complications = clamp(stats.complications + 1, 0, MAX_COMPLICATIONS);
+        narrative = "El uso precoz de ceftriaxona no resuelve el escenario y sí suma complicaciones.";
       }
       break;
     }
     case "corticoides": {
-      stats.iatrogenia = clamp(stats.iatrogenia + 1, 0, 3);
+      stats.complications = clamp(stats.complications + 1, 0, MAX_COMPLICATIONS);
       narrative = "Los corticoides sin indicación clara pesan más como riesgo que como ayuda.";
       break;
     }
@@ -450,7 +422,7 @@ const applyMedication = (state: GameState, doseMg: number) => {
         narrative = "La crisis cede con un manejo rápido y el paciente deja de luchar tanto contra su propio sistema nervioso.";
         next.flags.improvedAtLeastOnce = true;
       } else {
-        stats.iatrogenia = clamp(stats.iatrogenia + 1, 0, 3);
+        stats.complications = clamp(stats.complications + 1, 0, MAX_COMPLICATIONS);
         narrative = "La sedación fuera de contexto clínico añade un coste innecesario.";
       }
       break;
@@ -523,7 +495,7 @@ const applyAction = (state: GameState, action: ActionKey) => {
         narrative = "La UCI llega a tiempo para la fase de mayor gravedad y estabiliza el escenario.";
         next.flags.improvedAtLeastOnce = true;
       } else {
-        stats.iatrogenia = clamp(stats.iatrogenia + 1, 0, 3);
+        stats.complications = clamp(stats.complications + 1, 0, MAX_COMPLICATIONS);
         narrative = "No tenemos camillas disponibles: este ingreso en UCI no está justificado ahora mismo.";
       }
       break;
@@ -761,7 +733,6 @@ export const getOutcomeTone = (outcome: Outcome | null) => {
   if (!outcome) return "neutral";
   if (outcome.id === "manejo_excellent") return "positive";
   if (outcome.id === "brote_hospitalario" || outcome.id === "complicacion_grave") return "danger";
-  if (outcome.id === "iatrogenia_alta") return "warning";
   return "neutral";
 };
 
@@ -774,7 +745,7 @@ export const getActionOutcomePreview = (choice: {
     if (choice.key === "paracetamol") {
       const dose = normalizeDose(choice.doseMg ?? "0");
       if (dose >= 500 && dose <= 1000) return "Una dosis prudente puede bajar la fiebre sin sumar ruido.";
-      if (dose > 0) return "Fuera de rango, suma iatrogenia y no controla bien la fiebre.";
+      if (dose > 0) return "Fuera de rango, suma complicaciones y no controla bien la fiebre.";
       return "El efecto antitérmico será modesto.";
     }
 

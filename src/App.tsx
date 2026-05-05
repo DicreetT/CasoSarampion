@@ -364,7 +364,6 @@ export default function App() {
             <StatBar icon="❤️" label="VIDA" value={state.stats.life} max={4} />
             <StatBar icon="🌡️" label="FIEBRE" value={state.stats.fever} max={4} />
             <StatBar icon="⚠️" label="COMPLICACIONES" value={state.stats.complications} max={4} />
-            <StatBar icon="☠️" label="IATROGENIA" value={state.stats.iatrogenia} max={3} />
           </div>
 
           <div className="vitalMonitor">
