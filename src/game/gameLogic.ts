@@ -150,8 +150,39 @@ export const turns: TurnDefinition[] = [
 const clamp = (value: number, min: number, max: number) =>
   Math.max(min, Math.min(max, value));
 
-const MAX_FEVER = 3;
-const MAX_COMPLICATIONS = 3;
+const MAX_FEVER = 4;
+const MAX_COMPLICATIONS = 4;
+
+const applyThresholdPenalties = (previousStats: Stats, stats: Stats) => {
+  const nextStats = { ...stats };
+  const messages: string[] = [];
+  let complicationsPenaltyApplied = false;
+
+  const maybeApplyComplicationsPenalty = () => {
+    if (!complicationsPenaltyApplied && previousStats.complications < MAX_COMPLICATIONS && nextStats.complications >= MAX_COMPLICATIONS) {
+      nextStats.life = clamp(nextStats.life - 1, 0, 4);
+      complicationsPenaltyApplied = true;
+      messages.push("Las complicaciones llenan su barra y pasan factura.");
+    }
+  };
+
+  if (previousStats.fever < MAX_FEVER && nextStats.fever >= MAX_FEVER) {
+    nextStats.life = clamp(nextStats.life - 1, 0, 4);
+    nextStats.complications = clamp(nextStats.complications + 2, 0, MAX_COMPLICATIONS);
+    messages.push("La fiebre llena su barra y arrastra más complicaciones.");
+    maybeApplyComplicationsPenalty();
+  }
+
+  if (previousStats.iatrogenia < 3 && nextStats.iatrogenia >= 3) {
+    nextStats.life = clamp(nextStats.life - 1, 0, 4);
+    nextStats.complications = clamp(nextStats.complications + 2, 0, MAX_COMPLICATIONS);
+    messages.push("La iatrogenia llena su barra y deja más daño.");
+    maybeApplyComplicationsPenalty();
+  }
+
+  maybeApplyComplicationsPenalty();
+  return { stats: nextStats, messages };
+};
 
 const normalizeDose = (dose: string) => {
   const parsed = Number.parseFloat(dose);
@@ -351,7 +382,8 @@ const setOutcome = (state: GameState): Outcome => {
 const applyMedication = (state: GameState, doseMg: number) => {
   const turn = getTurn(state).id;
   const next = { ...state };
-  const stats = { ...next.stats };
+  const previousStats = { ...next.stats };
+  let stats = { ...next.stats };
   const vitals = { ...next.vitals };
   let narrative = "";
 
@@ -428,6 +460,10 @@ const applyMedication = (state: GameState, doseMg: number) => {
       narrative = "No hay un fármaco activo seleccionado.";
   }
 
+  const threshold = applyThresholdPenalties(previousStats, stats);
+  stats = threshold.stats;
+  narrative = [narrative, ...threshold.messages].filter(Boolean).join(" ");
+
   next.stats = stats;
   next.vitals = vitals;
   addLog(next, narrative);
@@ -436,7 +472,8 @@ const applyMedication = (state: GameState, doseMg: number) => {
 
 const applyAction = (state: GameState, action: ActionKey) => {
   const next = { ...state };
-  const stats = { ...next.stats };
+  const previousStats = { ...next.stats };
+  let stats = { ...next.stats };
   const vitals = { ...next.vitals };
   const turn = getTurn(state).id;
   let narrative = "";
@@ -499,6 +536,10 @@ const applyAction = (state: GameState, action: ActionKey) => {
       break;
   }
 
+  const threshold = applyThresholdPenalties(previousStats, stats);
+  stats = threshold.stats;
+  narrative = [narrative, ...threshold.messages].filter(Boolean).join(" ");
+
   next.stats = stats;
   next.vitals = vitals;
   addLog(next, narrative);
@@ -507,7 +548,8 @@ const applyAction = (state: GameState, action: ActionKey) => {
 
 const applySupport = (state: GameState, support: SupportKey) => {
   const next = { ...state };
-  const stats = { ...next.stats };
+  const previousStats = { ...next.stats };
+  let stats = { ...next.stats };
   const vitals = { ...next.vitals };
   let narrative = "";
 
@@ -544,6 +586,10 @@ const applySupport = (state: GameState, support: SupportKey) => {
       break;
   }
 
+  const threshold = applyThresholdPenalties(previousStats, stats);
+  stats = threshold.stats;
+  narrative = [narrative, ...threshold.messages].filter(Boolean).join(" ");
+
   next.stats = stats;
   next.vitals = vitals;
   addLog(next, narrative);
@@ -552,7 +598,8 @@ const applySupport = (state: GameState, support: SupportKey) => {
 
 const applyTurnPressure = (state: GameState) => {
   const next = { ...state };
-  const stats = { ...next.stats };
+  const previousStats = { ...next.stats };
+  let stats = { ...next.stats };
   const hidden = { ...next.hidden };
   const vitals = { ...next.vitals };
   const turn = getTurn(next).id;
@@ -562,8 +609,7 @@ const applyTurnPressure = (state: GameState) => {
       vitals.temperature = Math.max(37.8, vitals.temperature - 0.2);
     } else {
       stats.life = clamp(stats.life - 1, 0, 4);
-      stats.fever = clamp(stats.fever + 1, 0, MAX_FEVER);
-      stats.complications = clamp(stats.complications + 1, 0, MAX_COMPLICATIONS);
+      stats.fever = clamp(stats.fever + 2, 0, MAX_FEVER);
       vitals.temperature = Math.max(vitals.temperature, 39.5);
     }
 
@@ -605,6 +651,9 @@ const applyTurnPressure = (state: GameState) => {
       hidden.outbreakRisk = clamp(hidden.outbreakRisk + 1, 0, 4);
     }
   }
+
+  const threshold = applyThresholdPenalties(previousStats, stats);
+  stats = threshold.stats;
 
   next.stats = stats;
   next.hidden = hidden;

@@ -348,8 +348,8 @@ export default function App() {
 
           <div className="hudPanel hudPanel--left">
             <StatBar icon="❤️" label="VIDA" value={state.stats.life} max={4} />
-            <StatBar icon="🌡️" label="FIEBRE" value={state.stats.fever} max={3} />
-            <StatBar icon="⚠️" label="COMPLICACIONES" value={state.stats.complications} max={3} />
+            <StatBar icon="🌡️" label="FIEBRE" value={state.stats.fever} max={4} />
+            <StatBar icon="⚠️" label="COMPLICACIONES" value={state.stats.complications} max={4} />
             <StatBar icon="☠️" label="IATROGENIA" value={state.stats.iatrogenia} max={3} />
           </div>
 
