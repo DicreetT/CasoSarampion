@@ -84,10 +84,10 @@ button {
   position: relative;
   isolation: isolate;
   display: grid;
-  grid-template-columns: minmax(290px, 0.95fr) minmax(500px, 1.65fr) minmax(280px, 0.95fr);
-  grid-template-rows: auto minmax(340px, 1fr) minmax(220px, auto) auto;
+  grid-template-columns: minmax(250px, 0.86fr) minmax(0, 1.72fr) minmax(240px, 0.8fr);
+  grid-template-rows: auto minmax(360px, 1fr) auto auto;
   gap: 16px;
-  min-height: 980px;
+  min-height: 900px;
   padding: 18px;
   border-radius: 34px;
   overflow: hidden;
@@ -120,7 +120,7 @@ button {
 
 .hudPanel--left {
   grid-column: 1;
-  grid-row: 1 / span 3;
+  grid-row: 1 / span 2;
 }
 
 .turnBanner {
@@ -128,8 +128,8 @@ button {
   grid-row: 1;
   align-self: start;
   justify-self: center;
-  width: min(100%, 560px);
-  padding: 16px 18px 18px;
+  width: min(100%, 620px);
+  padding: 14px 16px 16px;
   border-radius: 24px;
   border: 1px solid rgba(123, 255, 138, 0.14);
   background: rgba(5, 10, 15, 0.84);
@@ -156,93 +156,24 @@ button {
 .turnBanner p {
   margin-bottom: 10px;
   color: #eef7f8;
-  font-size: clamp(1.02rem, 1.4vw, 1.28rem);
+  font-size: clamp(1rem, 1.3vw, 1.18rem);
   line-height: 1.55;
 }
 
 .turnBanner strong {
   color: #cbe8d1;
-  font-size: 0.96rem;
-  letter-spacing: 0.02em;
-}
-
-.patientInfoPanel {
-  grid-column: 3;
-  grid-row: 1;
-  align-self: start;
-  padding: 18px;
-  border-radius: 28px;
-  background: rgba(4, 9, 13, 0.84);
-  backdrop-filter: blur(18px);
-  border: 1px solid rgba(109, 207, 246, 0.26);
-  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.4);
-}
-
-.patientInfoPanel__top {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 14px;
-  align-items: start;
-}
-
-.patientIcon {
-  width: 52px;
-  height: 52px;
-  border-radius: 18px;
-  display: grid;
-  place-items: center;
-  border: 1px solid rgba(109, 207, 246, 0.3);
-  background: rgba(109, 207, 246, 0.08);
-  color: #dff4ff;
-  font-size: 1.75rem;
-}
-
-.patientInfoPanel strong {
-  display: block;
-  font-size: 1.1rem;
-}
-
-.patientInfoPanel p {
-  margin-bottom: 0;
-  color: #b9ced6;
-  line-height: 1.45;
-}
-
-.patientInfoPanel__divider {
-  height: 1px;
-  margin: 16px 0 14px;
-  background: linear-gradient(90deg, transparent, rgba(109, 207, 246, 0.45), transparent);
-}
-
-.diagnosisLabel {
-  display: block;
-  margin-bottom: 8px;
-  color: #c1d8df;
-  text-transform: none;
-  letter-spacing: 0.02em;
   font-size: 0.92rem;
-}
-
-.patientInfoPanel h2 {
-  margin-bottom: 10px;
-  color: #ff5d74;
-  font-size: 1.5rem;
-  text-shadow: 0 0 16px rgba(255, 93, 116, 0.32);
-}
-
-.patientInfoPanel > p:last-child {
-  margin-bottom: 0;
-  color: #d7e8ee;
-  line-height: 1.56;
+  letter-spacing: 0.02em;
 }
 
 .vitalMonitor {
   grid-column: 3;
-  grid-row: 2 / span 2;
+  grid-row: 2;
+  align-self: start;
   display: grid;
-  gap: 14px;
-  padding: 18px;
-  border-radius: 30px;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 22px;
   background:
     linear-gradient(180deg, rgba(4, 10, 12, 0.98), rgba(2, 7, 9, 0.96)),
     radial-gradient(circle at top, rgba(123, 255, 138, 0.08), transparent 44%);
@@ -258,7 +189,7 @@ button {
   gap: 12px;
   align-items: center;
   color: #cfeedd;
-  font-size: 0.94rem;
+  font-size: 0.82rem;
   letter-spacing: 0.02em;
 }
 
@@ -266,14 +197,14 @@ button {
   color: var(--neon);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-size: 0.76rem;
+  font-size: 0.68rem;
   text-shadow: 0 0 12px rgba(123, 255, 138, 0.52);
 }
 
 .vitalRows {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 8px;
 }
 
 .vitalRows .vitalPill:last-child {
@@ -287,11 +218,11 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 620px;
-  padding: 12px 6px 18px;
-  border-radius: 30px;
+  min-height: 600px;
+  padding: 10px 4px 14px;
+  border-radius: 24px;
   overflow: hidden;
-  border: 1px solid rgba(123, 255, 138, 0.08);
+  border: 1px solid rgba(123, 255, 138, 0.04);
   background:
     radial-gradient(circle at 50% 20%, rgba(20, 184, 166, 0.16), transparent 30%),
     radial-gradient(circle at center, rgba(123, 255, 138, 0.1), transparent 48%),
@@ -302,14 +233,14 @@ button {
 .patientCenter::before {
   content: "";
   position: absolute;
-  inset: 18px;
+  inset: 12px;
   border-radius: 24px;
   border: 1px solid rgba(109, 207, 246, 0.08);
   pointer-events: none;
 }
 
 .patientCenter .patientIllustrationFrame {
-  width: min(100%, 1140px);
+  width: min(100%, 1000px);
 }
 
 .patientCenter .patientIllustrationRaster,
@@ -331,7 +262,7 @@ button {
   gap: 10px;
   align-items: center;
   justify-content: center;
-  padding: 13px 16px;
+  padding: 10px 14px;
   border-radius: 22px;
   border: 1px solid rgba(109, 207, 246, 0.16);
   background: rgba(4, 8, 12, 0.76);
@@ -353,8 +284,8 @@ button {
 .medicalPocket {
   position: relative;
   z-index: 1;
-  padding: 16px 18px 18px;
-  border-radius: 30px;
+  padding: 14px 14px 16px;
+  border-radius: 24px;
   border: 1px solid rgba(123, 255, 138, 0.12);
   background:
     radial-gradient(circle at top, rgba(123, 255, 138, 0.06), transparent 34%),
@@ -368,7 +299,7 @@ button {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   color: #cdeed6;
 }
 
@@ -378,7 +309,7 @@ button {
 
 .medicalPocket__title h2 {
   margin-bottom: 0;
-  font-size: 1.2rem;
+  font-size: 1.05rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -386,7 +317,7 @@ button {
 .pocketColumns {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  gap: 10px;
 }
 
 .pocketColumn--meds {
@@ -402,8 +333,8 @@ button {
 }
 
 .pocketColumn h3 {
-  margin-bottom: 12px;
-  font-size: 1rem;
+  margin-bottom: 10px;
+  font-size: 0.92rem;
   letter-spacing: 0.04em;
 }
 
@@ -421,9 +352,9 @@ button {
 
 .pocketColumn {
   display: grid;
-  gap: 10px;
-  padding: 14px;
-  border-radius: 24px;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 20px;
   border: 1px solid rgba(123, 255, 138, 0.1);
   background: rgba(3, 7, 10, 0.78);
 }
@@ -434,8 +365,8 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 14px 14px 15px;
-  border-radius: 18px;
+  padding: 11px 12px 12px;
+  border-radius: 16px;
   border: 1px solid rgba(123, 255, 138, 0.12);
   background: rgba(5, 10, 14, 0.9);
   color: var(--text);
@@ -453,12 +384,13 @@ button {
 .pocketItem strong {
   display: block;
   margin-bottom: 4px;
-  font-size: 0.98rem;
+  font-size: 0.92rem;
 }
 
 .pocketItem small {
   color: #9cb1b7;
-  line-height: 1.35;
+  line-height: 1.28;
+  font-size: 0.78rem;
 }
 
 .pocketItem.active {
@@ -472,8 +404,8 @@ button {
 .doseControl {
   display: grid;
   gap: 8px;
-  padding: 14px;
-  border-radius: 18px;
+  padding: 12px;
+  border-radius: 16px;
   border: 1px solid rgba(109, 207, 246, 0.16);
   background: rgba(5, 10, 14, 0.78);
 }
@@ -486,8 +418,8 @@ button {
 
 .doseControl input {
   width: 100%;
-  min-height: 48px;
-  padding: 10px 14px;
+  min-height: 42px;
+  padding: 9px 12px;
   border: 1px solid rgba(109, 207, 246, 0.2);
   border-radius: 14px;
   background: rgba(0, 0, 0, 0.62);
@@ -504,11 +436,11 @@ button {
 
 .applyDecisionButton {
   width: 100%;
-  margin-top: 16px;
-  min-height: 74px;
-  padding: 16px 18px;
+  margin-top: 12px;
+  min-height: 62px;
+  padding: 14px 16px;
   border: 0;
-  border-radius: 22px;
+  border-radius: 18px;
   background: linear-gradient(90deg, #4ade80, #22d3ee);
   color: #031014;
   font-size: 1.08rem;
@@ -2039,8 +1971,8 @@ h1 {
   }
 
   .heroScene {
-    grid-template-columns: minmax(260px, 0.92fr) minmax(420px, 1.45fr) minmax(250px, 0.86fr);
-    min-height: 920px;
+    grid-template-columns: minmax(230px, 0.84fr) minmax(0, 1.62fr) minmax(220px, 0.76fr);
+    min-height: 860px;
   }
 }
 
@@ -2059,7 +1991,6 @@ h1 {
 
   .hudPanel--left,
   .turnBanner,
-  .patientInfoPanel,
   .patientCenter,
   .vitalMonitor,
   .currentStateStrip,
@@ -2084,6 +2015,7 @@ h1 {
 
   .vitalMonitor {
     grid-row: auto;
+    width: 100%;
   }
 
   .currentStateStrip {
@@ -2122,14 +2054,12 @@ h1 {
     padding: 14px;
   }
 
-  .patientInfoPanel,
   .vitalMonitor,
   .medicalPocket,
   .historyPanel {
     border-radius: 22px;
   }
 
-  .patientInfoPanel,
   .vitalMonitor {
     width: 100%;
     min-width: 0;

@@ -5,7 +5,6 @@ import {
   createInitialState,
   getActionOutcomePreview,
   getOutcomeTone,
-  getPatientSummary,
   getTurn,
   turns,
   type ActionKey,
@@ -46,25 +45,10 @@ const supportOptions: Array<{ key: SupportKey; label: string; help: string }> = 
 
 const initialState = createInitialState();
 
-const fadeUp = {
-  initial: { opacity: 0, y: 18 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.45 },
-};
-
 const tapFeedback = {
   whileTap: { scale: 0.985 },
   whileHover: { y: -2 },
   transition: { duration: 0.18 },
-};
-
-const patientRasterSources: Record<VisualState, string> = {
-  normal: "/assets/images/normal.png",
-  fever: "/assets/images/fever.png",
-  dehydrated: "/assets/images/dehydrated.png",
-  "respiratory distress": "/assets/images/respiratory.png",
-  critical: "/assets/images/critical.png",
-  improved: "/assets/images/improved.png",
 };
 
 const progressColor = (value: number, max: number) => {
@@ -116,6 +100,12 @@ const VitalPill = ({ label, value, tone = "neutral" }: { label: string; value: s
 const PatientIllustration = ({ state }: { state: GameState }) => {
   const svgState = state.visualState;
   const [rasterFailed, setRasterFailed] = useState(false);
+  const getPatientImage = () => {
+    if (state.stats.life <= 1) return "/assets/images/critical.png";
+    if (state.stats.complications > 3) return "/assets/images/respiratory.png";
+    if (state.stats.fever > 3) return "/assets/images/fever.png";
+    return "/assets/images/normal.png";
+  };
   const breathingMotion =
     svgState === "critical"
       ? { y: [0, -2, 0], scale: [1, 1.01, 1], rotate: [0, 0.25, -0.25, 0] }
@@ -132,7 +122,7 @@ const PatientIllustration = ({ state }: { state: GameState }) => {
       {!rasterFailed && (
         <img
           className={`patientIllustrationRaster ${svgState}`}
-          src={patientRasterSources[svgState]}
+          src={getPatientImage()}
           alt="Paciente joven recostado en una camilla hospitalaria"
           onError={() => setRasterFailed(true)}
         />
@@ -323,7 +313,6 @@ export default function App() {
   const currentOutcome = state.outcome;
   const contagionOpacity = state.flags.isolated ? 0 : Math.min(0.95, state.hidden.outbreakRisk / 5);
   const contagionActive = contagionOpacity > 0.04;
-  const patientSummary = getPatientSummary(state);
   const historyRows = [
     {
       label: "Turno 0",
@@ -359,20 +348,6 @@ export default function App() {
             <span>TURNO {turn.id + 1} DE {turns.length}</span>
             <p>{turn.scene}</p>
             <strong>¿Qué decides hacer?</strong>
-          </div>
-
-          <div className="patientInfoPanel">
-            <div className="patientInfoPanel__top">
-              <span className="patientIcon">☤</span>
-              <div>
-                <strong>Paciente: A.R.M.</strong>
-                <p>21 años · Masculino</p>
-              </div>
-            </div>
-            <div className="patientInfoPanel__divider" />
-            <span className="diagnosisLabel">Sospecha diagnóstica</span>
-            <h2>Sarampión</h2>
-            <p>{patientSummary}</p>
           </div>
 
           <div className="vitalMonitor">
