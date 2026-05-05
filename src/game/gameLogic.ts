@@ -399,9 +399,6 @@ const applyMedication = (state: GameState, doseMg: number) => {
         next.flags.paracetamolGiven = true;
       } else if (doseMg > 0) {
         stats.iatrogenia = clamp(stats.iatrogenia + 1, 0, 3);
-        stats.complications = clamp(stats.complications + 1, 0, MAX_COMPLICATIONS);
-        stats.fever = clamp(stats.fever + 1, 0, MAX_FEVER);
-        stats.life = clamp(stats.life - 1, 0, 4);
         narrative = "La dosis fuera de rango deja iatrogenia y empeora el curso clínico.";
       } else {
         narrative = "No se administra una dosis útil.";
@@ -777,7 +774,7 @@ export const getActionOutcomePreview = (choice: {
     if (choice.key === "paracetamol") {
       const dose = normalizeDose(choice.doseMg ?? "0");
       if (dose >= 500 && dose <= 1000) return "Una dosis prudente puede bajar la fiebre sin sumar ruido.";
-      if (dose > 0) return "Fuera de rango, el antitérmico deja de ser una ayuda limpia.";
+      if (dose > 0) return "Fuera de rango, suma iatrogenia y no controla bien la fiebre.";
       return "El efecto antitérmico será modesto.";
     }
 
