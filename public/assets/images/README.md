@@ -6,6 +6,7 @@ Expected filenames:
 
 - `normal.png`
 - `fever.png`
+- `r1.png`
 - `dehydrated.png`
 - `respiratory.png`
 - `critical.png`

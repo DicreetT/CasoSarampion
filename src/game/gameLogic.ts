@@ -118,9 +118,9 @@ export const turns: TurnDefinition[] = [
   },
   {
     id: 2,
-    label: "R1 propone escarlatina",
-    scene: "Un residente junior sugiere amoxicilina por una hipótesis de faringitis bacteriana.",
-    focus: "No todo exantema necesita antibiótico.",
+    label: "R1 pauta amoxicilina",
+    scene: "Un residente junior pauta amoxicilina por una hipótesis de faringitis bacteriana.",
+    focus: "Aquí la duda antibiótica suele traducirse en iatrogenia.",
   },
   {
     id: 3,

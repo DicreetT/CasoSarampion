@@ -131,10 +131,12 @@ const PatientIllustration = ({ state }: { state: GameState }) => {
   const assetBase = `${import.meta.env.BASE_URL}assets/images/`;
   const normalImage = `${assetBase}normal.png`;
   const feverImage = `${assetBase}fever.png`;
+  const r1Image = `${assetBase}r1.png`;
   const [imageSrc, setImageSrc] = useState(normalImage);
   const getPatientImage = () => {
     if (state.turnIndex === 0) return normalImage;
     if (state.turnIndex === 1) return feverImage;
+    if (state.turnIndex === 2) return r1Image;
     if (state.stats.life <= 1) return `${assetBase}critical.png`;
     if (state.stats.complications >= 2) return `${assetBase}respiratory.png`;
     if (state.stats.fever > 3) return `${assetBase}fever.png`;
@@ -149,7 +151,7 @@ const PatientIllustration = ({ state }: { state: GameState }) => {
 
   useEffect(() => {
     setImageSrc(getPatientImage());
-  }, [state.turnIndex, state.stats.life, state.stats.complications, state.stats.fever, svgState]);
+  }, [state.turnIndex, state.stats.life, state.stats.complications, state.stats.fever, svgState, r1Image]);
 
   return (
     <div className="patientIllustrationFrame">
