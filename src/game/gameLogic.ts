@@ -150,6 +150,9 @@ export const turns: TurnDefinition[] = [
 const clamp = (value: number, min: number, max: number) =>
   Math.max(min, Math.min(max, value));
 
+const MAX_FEVER = 3;
+const MAX_COMPLICATIONS = 3;
+
 const normalizeDose = (dose: string) => {
   const parsed = Number.parseFloat(dose);
   return Number.isFinite(parsed) ? parsed : 0;
@@ -214,7 +217,7 @@ export const getPatientSummary = (state: GameState) => {
 };
 
 const getVisualState = (state: GameState): VisualState => {
-  if (state.stats.life <= 0 || state.stats.iatrogenia >= 3 || state.stats.complications >= 5) {
+  if (state.stats.life <= 0 || state.stats.iatrogenia >= 3 || state.stats.complications >= MAX_COMPLICATIONS) {
     return "critical";
   }
 
@@ -322,7 +325,7 @@ const setOutcome = (state: GameState): Outcome => {
     };
   }
 
-  if (state.stats.complications >= 4 || state.stats.life <= 1) {
+  if (state.stats.complications >= MAX_COMPLICATIONS || state.stats.life <= 1) {
     return {
       id: "complicacion_grave",
       title: "Complicación grave",
@@ -355,15 +358,15 @@ const applyMedication = (state: GameState, doseMg: number) => {
   switch (next.selectedMedication) {
     case "paracetamol": {
       if (doseMg >= 500 && doseMg <= 1000) {
-        stats.fever = clamp(stats.fever - 1, 0, 5);
+        stats.fever = clamp(stats.fever - 1, 0, MAX_FEVER);
         vitals.temperature = Math.max(36.8, vitals.temperature - 0.6);
         narrative = "El paracetamol baja la curva térmica y da un respiro clínico.";
         next.flags.improvedAtLeastOnce = true;
         next.flags.paracetamolGiven = true;
       } else if (doseMg > 0) {
         stats.iatrogenia = clamp(stats.iatrogenia + 1, 0, 3);
-        stats.complications = clamp(stats.complications + 1, 0, 5);
-        stats.fever = clamp(stats.fever + 1, 0, 5);
+        stats.complications = clamp(stats.complications + 1, 0, MAX_COMPLICATIONS);
+        stats.fever = clamp(stats.fever + 1, 0, MAX_FEVER);
         stats.life = clamp(stats.life - 1, 0, 4);
         narrative = "La dosis fuera de rango deja iatrogenia y empeora el curso clínico.";
       } else {
@@ -375,7 +378,7 @@ const applyMedication = (state: GameState, doseMg: number) => {
       stats.iatrogenia = clamp(stats.iatrogenia + 2, 0, 3);
       if (stats.iatrogenia >= 3) {
         stats.life = clamp(stats.life - 3, 0, 4);
-        stats.complications = clamp(stats.complications + 3, 0, 5);
+        stats.complications = clamp(stats.complications + 3, 0, MAX_COMPLICATIONS);
       }
       narrative = "El antibiótico no cambia el cuadro viral y añade ruido terapéutico.";
       if (turn === 2) {
@@ -385,7 +388,7 @@ const applyMedication = (state: GameState, doseMg: number) => {
     }
     case "ceftriaxona": {
       if (turn >= 4) {
-        stats.complications = clamp(stats.complications - 1, 0, 5);
+        stats.complications = clamp(stats.complications - 1, 0, MAX_COMPLICATIONS);
         narrative = "La cobertura parenteral solo encaja si sospechas complicación bacteriana real.";
       } else {
         stats.iatrogenia = clamp(stats.iatrogenia + 1, 0, 3);
@@ -400,8 +403,8 @@ const applyMedication = (state: GameState, doseMg: number) => {
     }
     case "vitaminaA": {
       if (state.turnIndex >= 1 && (state.stats.fever >= 2 || state.stats.complications >= 1)) {
-        stats.complications = clamp(stats.complications - 1, 0, 5);
-        stats.fever = clamp(stats.fever - 1, 0, 5);
+        stats.complications = clamp(stats.complications - 1, 0, MAX_COMPLICATIONS);
+        stats.fever = clamp(stats.fever - 1, 0, MAX_FEVER);
         narrative = "La vitamina A apoya casos seleccionados y no sustituye el resto del manejo.";
         next.flags.improvedAtLeastOnce = true;
       } else {
@@ -411,7 +414,7 @@ const applyMedication = (state: GameState, doseMg: number) => {
     }
     case "benzodiacepina": {
       if (turn === 5) {
-        stats.complications = clamp(stats.complications - 2, 0, 5);
+        stats.complications = clamp(stats.complications - 2, 0, MAX_COMPLICATIONS);
         stats.life = clamp(stats.life + 1, 0, 4);
         narrative = "La crisis cede con un manejo rápido y el paciente deja de luchar tanto contra su propio sistema nervioso.";
         next.flags.improvedAtLeastOnce = true;
@@ -461,7 +464,7 @@ const applyAction = (state: GameState, action: ActionKey) => {
       break;
     case "planta":
       next.flags.admittedWard = true;
-      stats.complications = clamp(stats.complications + 1, 0, 5);
+      stats.complications = clamp(stats.complications + 1, 0, MAX_COMPLICATIONS);
       narrative = "El ingreso en planta ordena el seguimiento, aunque también añade exposición si no se ha cerrado el control de infecciones.";
       if (!next.flags.isolated || !next.flags.ppe) {
         next.hidden.outbreakRisk = clamp(next.hidden.outbreakRisk + 1, 0, 4);
@@ -471,7 +474,7 @@ const applyAction = (state: GameState, action: ActionKey) => {
       next.flags.admittedUci = true;
       if (turn === 5) {
         stats.life = clamp(stats.life + 1, 0, 4);
-        stats.complications = clamp(stats.complications - 1, 0, 5);
+        stats.complications = clamp(stats.complications - 1, 0, MAX_COMPLICATIONS);
         vitals.spo2 = Math.min(99, vitals.spo2 + 3);
         narrative = "La UCI llega a tiempo para la fase de mayor gravedad y estabiliza el escenario.";
         next.flags.improvedAtLeastOnce = true;
@@ -486,12 +489,12 @@ const applyAction = (state: GameState, action: ActionKey) => {
         next.flags.improvedAtLeastOnce = true;
       } else {
         stats.life = clamp(stats.life - 3, 0, 4);
-        stats.complications = clamp(stats.complications + 3, 0, 5);
+        stats.complications = clamp(stats.complications + 3, 0, MAX_COMPLICATIONS);
         narrative = "Dar el alta demasiado pronto deja al paciente expuesto y empeora el caso.";
       }
       break;
     case "observar":
-      stats.fever = clamp(stats.fever - 1, 0, 5);
+      stats.fever = clamp(stats.fever - 1, 0, MAX_FEVER);
       narrative = "La observación gana tiempo clínico y permite ver si el cuadro realmente gira a mejor.";
       break;
   }
@@ -511,7 +514,7 @@ const applySupport = (state: GameState, support: SupportKey) => {
   switch (support) {
     case "oral":
       if (state.turnIndex === 3 || state.stats.complications >= 1) {
-        stats.complications = clamp(stats.complications - 1, 0, 5);
+        stats.complications = clamp(stats.complications - 1, 0, MAX_COMPLICATIONS);
         vitals.bp = "112/72";
         narrative = "La hidratación oral ayuda si la deshidratación es leve y el paciente todavía puede beber.";
         next.flags.improvedAtLeastOnce = true;
@@ -520,7 +523,7 @@ const applySupport = (state: GameState, support: SupportKey) => {
       }
       break;
     case "iv":
-      stats.complications = clamp(stats.complications - 2, 0, 5);
+      stats.complications = clamp(stats.complications - 2, 0, MAX_COMPLICATIONS);
       stats.life = clamp(stats.life + 1, 0, 4);
       vitals.bp = "116/74";
       narrative = "El suero IV corrige mejor el volumen cuando el cuadro ya pesa más.";
@@ -528,12 +531,12 @@ const applySupport = (state: GameState, support: SupportKey) => {
       break;
     case "oxigeno":
       vitals.spo2 = Math.min(99, vitals.spo2 + 4);
-      stats.complications = clamp(stats.complications - 1, 0, 5);
+      stats.complications = clamp(stats.complications - 1, 0, MAX_COMPLICATIONS);
       narrative = "El oxígeno sostiene la oxigenación y compra tiempo para el resto del manejo.";
       next.flags.improvedAtLeastOnce = true;
       break;
     case "reposo":
-      stats.fever = clamp(stats.fever - 1, 0, 5);
+      stats.fever = clamp(stats.fever - 1, 0, MAX_FEVER);
       narrative = "El reposo baja un poco el coste fisiológico del episodio.";
       break;
     case "dieta":
@@ -559,8 +562,8 @@ const applyTurnPressure = (state: GameState) => {
       vitals.temperature = Math.max(37.8, vitals.temperature - 0.2);
     } else {
       stats.life = clamp(stats.life - 1, 0, 4);
-      stats.fever = clamp(stats.fever + 1, 0, 5);
-      stats.complications = clamp(stats.complications + 1, 0, 5);
+      stats.fever = clamp(stats.fever + 1, 0, MAX_FEVER);
+      stats.complications = clamp(stats.complications + 1, 0, MAX_COMPLICATIONS);
       vitals.temperature = Math.max(vitals.temperature, 39.5);
     }
 
@@ -579,18 +582,18 @@ const applyTurnPressure = (state: GameState) => {
   }
 
   if (turn === 3) {
-    stats.complications = clamp(stats.complications + 1, 0, 5);
-    stats.fever = clamp(stats.fever + 1, 0, 5);
+    stats.complications = clamp(stats.complications + 1, 0, MAX_COMPLICATIONS);
+    stats.fever = clamp(stats.fever + 1, 0, MAX_FEVER);
   }
 
   if (turn === 4) {
-    stats.complications = clamp(stats.complications + 1, 0, 5);
+    stats.complications = clamp(stats.complications + 1, 0, MAX_COMPLICATIONS);
     stats.life = clamp(stats.life - 1, 0, 4);
     vitals.spo2 = Math.min(vitals.spo2, 91);
   }
 
   if (turn === 5) {
-    stats.complications = clamp(stats.complications + 1, 0, 5);
+    stats.complications = clamp(stats.complications + 1, 0, MAX_COMPLICATIONS);
     stats.life = clamp(stats.life - 1, 0, 4);
   }
 

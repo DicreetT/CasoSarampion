@@ -123,7 +123,7 @@ const PatientIllustration = ({ state }: { state: GameState }) => {
     if (state.turnIndex === 0) return normalImage;
     if (state.turnIndex === 1) return feverImage;
     if (state.stats.life <= 1) return `${assetBase}critical.png`;
-    if (state.stats.complications > 3) return `${assetBase}respiratory.png`;
+    if (state.stats.complications >= 2) return `${assetBase}respiratory.png`;
     if (state.stats.fever > 3) return `${assetBase}fever.png`;
     return normalImage;
   };
@@ -348,8 +348,8 @@ export default function App() {
 
           <div className="hudPanel hudPanel--left">
             <StatBar icon="❤️" label="VIDA" value={state.stats.life} max={4} />
-            <StatBar icon="🌡️" label="FIEBRE" value={state.stats.fever} max={5} />
-            <StatBar icon="⚠️" label="COMPLICACIONES" value={state.stats.complications} max={5} />
+            <StatBar icon="🌡️" label="FIEBRE" value={state.stats.fever} max={3} />
+            <StatBar icon="⚠️" label="COMPLICACIONES" value={state.stats.complications} max={3} />
             <StatBar icon="☠️" label="IATROGENIA" value={state.stats.iatrogenia} max={3} />
           </div>
 
