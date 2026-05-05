@@ -35,7 +35,7 @@ const actionOptions: Array<{ key: ActionKey; label: string; help: string }> = [
   { key: "epis", label: "EPIs / FFP2 protection", help: "Protección del equipo" },
   { key: "notificar", label: "Notificar salud pública", help: "La prevención se juega fuera de la habitación" },
   { key: "contactos", label: "Identificar contactos", help: "Corta cadenas de transmisión" },
-  { key: "planta", label: "Ingreso en planta", help: "Seguimiento y vigilancia" },
+  { key: "planta", label: "Vacunar", help: "Seguimiento y vigilancia" },
   { key: "uci", label: "Ingreso UCI", help: "Escalada cuando la gravedad manda" },
   { key: "alta", label: "Alta con control ambulatorio", help: "Solo cuando el caso ya está contenido" },
   { key: "observar", label: "Seguir observando", help: "Tiempo clínico para no precipitarse" },
@@ -48,6 +48,10 @@ const supportOptions: Array<{ key: SupportKey; label: string; help: string }> = 
   { key: "reposo", label: "Reposo", help: "Baja el coste fisiológico" },
   { key: "dieta", label: "Dieta blanda", help: "Acompañamiento clínico" },
 ];
+
+const medicationLabelByKey = new Map(medicationOptions.map((option) => [option.key, option.label]));
+const actionLabelByKey = new Map(actionOptions.map((option) => [option.key, option.label]));
+const supportLabelByKey = new Map(supportOptions.map((option) => [option.key, option.label]));
 
 const initialState = createInitialState();
 
@@ -140,10 +144,15 @@ const choiceId = (choice: TurnChoice) => `${choice.kind}:${choice.key}`;
 
 const choiceLabel = (choice: TurnChoice) => {
   if (choice.kind === "medication") {
-    return `${choice.key} ${choice.doseMg}mg`;
+    const label = medicationLabelByKey.get(choice.key) ?? choice.key;
+    return `${label} ${choice.doseMg}mg`;
   }
 
-  return choice.key;
+  if (choice.kind === "action") {
+    return actionLabelByKey.get(choice.key) ?? choice.key;
+  }
+
+  return supportLabelByKey.get(choice.key) ?? choice.key;
 };
 
 const PatientIllustration = ({ state }: { state: GameState }) => {
