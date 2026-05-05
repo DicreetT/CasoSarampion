@@ -35,6 +35,7 @@ const actionOptions: Array<{ key: ActionKey; label: string; help: string }> = [
   { key: "epis", label: "EPIs / FFP2 protection", help: "Protección del equipo" },
   { key: "notificar", label: "Notificar salud pública", help: "La prevención se juega fuera de la habitación" },
   { key: "contactos", label: "Identificar contactos", help: "Corta cadenas de transmisión" },
+  { key: "suspender", label: "Suspender medicación", help: "Elige qué pauta retirar" },
   { key: "planta", label: "Vacunar", help: "Seguimiento y vigilancia" },
   { key: "uci", label: "Ingreso UCI", help: "Escalada cuando la gravedad manda" },
   { key: "alta", label: "Alta con control ambulatorio", help: "Solo cuando el caso ya está contenido" },
@@ -173,6 +174,11 @@ const choiceLabel = (choice: TurnChoice) => {
     return `${label} ${choice.doseMg}mg`;
   }
 
+  if (choice.kind === "suspension") {
+    const label = medicationLabelByKey.get(choice.key) ?? choice.key;
+    return `Suspender: ${label}`;
+  }
+
   if (choice.kind === "action") {
     return actionLabelByKey.get(choice.key) ?? choice.key;
   }
@@ -253,6 +259,10 @@ export default function App() {
   const turn = getTurn(state);
   const outcomeTone = getOutcomeTone(state.outcome);
   const isFinished = state.finished;
+  const suspenderMode = selectedChoices.some(
+    (choice) => choice.kind === "action" && choice.key === "suspender",
+  );
+  const suspensionChoice = selectedChoices.find((choice) => choice.kind === "suspension") ?? null;
 
   const visualClass = useMemo(() => {
     switch (state.visualState) {
@@ -291,14 +301,43 @@ export default function App() {
 
   const hasChoice = (choice: TurnChoice) => selectedChoices.some((item) => choiceId(item) === choiceId(choice));
 
+  const clearSuspensionChoices = (choices: TurnChoice[]) =>
+    choices.filter((item) => item.kind !== "suspension" && !(item.kind === "action" && item.key === "suspender"));
+
   const updateMedicationChoice = (key: MedicationKey) => {
     setSelectedChoices((current) => {
+      const suspensionIndex = current.findIndex((item) => item.kind === "suspension");
       const existingMedicationIndex = current.findIndex((item) => item.kind === "medication");
-      const updatedChoice: TurnChoice = { kind: "medication", key, doseMg: state.selectedDoseMg };
+      const updatedMedicationChoice: TurnChoice = { kind: "medication", key, doseMg: state.selectedDoseMg };
+      const updatedSuspensionChoice: TurnChoice = { kind: "suspension", key };
+
+      if (suspenderMode) {
+        if (suspensionIndex >= 0) {
+          const updated = [...current];
+          updated[suspensionIndex] = updatedSuspensionChoice;
+          setPreviewText(`Se suspende ${medicationLabelByKey.get(key) ?? key}.`);
+          return updated;
+        }
+
+        if (existingMedicationIndex >= 0) {
+          const updated = [...current];
+          updated[existingMedicationIndex] = updatedSuspensionChoice;
+          setPreviewText(`Se suspende ${medicationLabelByKey.get(key) ?? key}.`);
+          return updated;
+        }
+
+        if (current.length >= 2) {
+          setPreviewText("Máximo 2 decisiones por turno.");
+          return current;
+        }
+
+        setPreviewText(`Se suspende ${medicationLabelByKey.get(key) ?? key}.`);
+        return [...current, updatedSuspensionChoice];
+      }
 
       if (existingMedicationIndex >= 0) {
         const updated = [...current];
-        updated[existingMedicationIndex] = updatedChoice;
+        updated[existingMedicationIndex] = updatedMedicationChoice;
         setPreviewText(getActionOutcomePreview({ kind: "medication", key, doseMg: state.selectedDoseMg }));
         return updated;
       }
@@ -309,23 +348,43 @@ export default function App() {
       }
 
       setPreviewText(getActionOutcomePreview({ kind: "medication", key, doseMg: state.selectedDoseMg }));
-      return [...current, updatedChoice];
+      return [...current, updatedMedicationChoice];
     });
-    setState((current) => ({ ...current, selectedMedication: key }));
+    if (!suspenderMode) {
+      setState((current) => ({ ...current, selectedMedication: key }));
+    }
   };
 
   const toggleActionChoice = (key: ActionKey) => {
     setSelectedChoices((current) => {
       const existing = current.findIndex((item) => item.kind === "action" && item.key === key);
       if (existing >= 0) {
-        const updated = current.filter((item) => !(item.kind === "action" && item.key === key));
-        setPreviewText(getActionOutcomePreview({ kind: "action", key }));
+        let updated = current.filter((item) => !(item.kind === "action" && item.key === key));
+        if (key === "suspender") {
+          updated = clearSuspensionChoices(updated);
+        }
+        setPreviewText(
+          updated.length
+            ? getActionOutcomePreview(
+                updated[updated.length - 1].kind === "medication"
+                  ? { kind: "medication", key: updated[updated.length - 1].key, doseMg: state.selectedDoseMg }
+                  : updated[updated.length - 1].kind === "action"
+                    ? { kind: "action", key: updated[updated.length - 1].key }
+                    : { kind: "support", key: updated[updated.length - 1].key },
+              )
+            : "Selecciona una intervención del pocket médico y aplica la decisión para avanzar al siguiente turno.",
+        );
         return updated;
       }
 
       if (current.length >= 2) {
         setPreviewText("Máximo 2 decisiones por turno.");
         return current;
+      }
+
+      if (key === "suspender") {
+        setPreviewText(getActionOutcomePreview({ kind: "action", key }));
+        return [...current, { kind: "action", key }];
       }
 
       setPreviewText(getActionOutcomePreview({ kind: "action", key }));
@@ -358,12 +417,17 @@ export default function App() {
       return;
     }
 
+    if (suspenderMode && !suspensionChoice) {
+      setPreviewText("Primero elige qué medicación quieres suspender.");
+      return;
+    }
+
     const next = applyChoices(
       state,
       selectedChoices.map((choice) =>
-        choice.kind === "medication"
-          ? { ...choice, doseMg: state.selectedDoseMg }
-          : choice,
+          choice.kind === "medication"
+            ? { ...choice, doseMg: state.selectedDoseMg }
+            : choice,
       ),
     );
 
@@ -486,11 +550,22 @@ export default function App() {
             <article className="pocketColumn pocketColumn--meds">
               <h3>💊 Medicamentos</h3>
 
+              {suspenderMode && (
+                <div className="modeNotice">
+                  Elige ahora qué medicación vas a suspender.
+                </div>
+              )}
+
               {medicationOptions.map((med) => (
                 <motion.button
                   key={med.key}
                   type="button"
-                  className={`pocketItem ${hasChoice({ kind: "medication", key: med.key, doseMg: state.selectedDoseMg }) ? "active" : ""}`}
+                  className={`pocketItem ${
+                    (suspenderMode && hasChoice({ kind: "suspension", key: med.key })) ||
+                    (!suspenderMode && hasChoice({ kind: "medication", key: med.key, doseMg: state.selectedDoseMg }))
+                      ? "active"
+                      : ""
+                  }`}
                   onClick={() => updateMedicationChoice(med.key)}
                   {...tapFeedback}
                 >
@@ -507,26 +582,30 @@ export default function App() {
                   min="0"
                   step="50"
                   value={state.selectedDoseMg}
+                  readOnly={suspenderMode}
                   onChange={(event) => {
                     const dose = event.target.value;
                     setState((current) => ({
                       ...current,
                       selectedDoseMg: dose,
                     }));
-                    setSelectedChoices((current) =>
-                      current.map((choice) =>
-                        choice.kind === "medication" ? { ...choice, doseMg: dose } : choice,
-                      ),
-                    );
 
-                    if (state.selectedMedication) {
-                      setPreviewText(
-                        getActionOutcomePreview({
-                          kind: "medication",
-                          key: state.selectedMedication,
-                          doseMg: dose,
-                        }),
+                    if (!suspenderMode) {
+                      setSelectedChoices((current) =>
+                        current.map((choice) =>
+                          choice.kind === "medication" ? { ...choice, doseMg: dose } : choice,
+                        ),
                       );
+
+                      if (state.selectedMedication) {
+                        setPreviewText(
+                          getActionOutcomePreview({
+                            kind: "medication",
+                            key: state.selectedMedication,
+                            doseMg: dose,
+                          }),
+                        );
+                      }
                     }
                   }}
                 />

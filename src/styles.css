@@ -422,6 +422,16 @@ button {
   color: #62b6ff;
 }
 
+.modeNotice {
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(98, 182, 255, 0.22);
+  background: rgba(98, 182, 255, 0.08);
+  color: #cfe7ff;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
 .pocketColumn--actions h3 {
   color: #9ce8ac;
 }

@@ -85,6 +85,7 @@ export type ActionKey =
   | "epis"
   | "notificar"
   | "contactos"
+  | "suspender"
   | "planta"
   | "uci"
   | "alta"
@@ -100,6 +101,7 @@ export type SupportKey =
 export type TurnChoice =
   | { kind: "medication"; key: MedicationKey; doseMg: string }
   | { kind: "action"; key: ActionKey }
+  | { kind: "suspension"; key: MedicationKey }
   | { kind: "support"; key: SupportKey };
 
 export const turns: TurnDefinition[] = [
@@ -443,6 +445,48 @@ const applyMedication = (state: GameState, doseMg: number) => {
   return next;
 };
 
+const applySuspension = (state: GameState, medication: MedicationKey) => {
+  const next = { ...state };
+  const previousStats = { ...next.stats };
+  let stats = { ...next.stats };
+  let narrative = "";
+
+  switch (medication) {
+    case "paracetamol":
+      stats.fever = clamp(stats.fever + 1, 0, MAX_FEVER);
+      narrative = "Retirar el antitérmico hace que la fiebre vuelva a asomar con más facilidad.";
+      break;
+    case "amoxicilina":
+    case "ceftriaxona":
+    case "corticoides":
+      stats.complications = clamp(stats.complications - 1, 0, MAX_COMPLICATIONS);
+      narrative = "Se suspende una pauta innecesaria y el ruido iatrogénico empieza a aflojar.";
+      next.flags.improvedAtLeastOnce = true;
+      break;
+    case "vitaminaA":
+      narrative = "Suspender este apoyo no cambia demasiado la trayectoria clínica.";
+      break;
+    case "benzodiacepina":
+      if (state.turnIndex === 5) {
+        stats.complications = clamp(stats.complications + 1, 0, MAX_COMPLICATIONS);
+        narrative = "Retirar la benzodiacepina en plena crisis no ayuda al paciente.";
+      } else {
+        narrative = "Fuera de la crisis, suspenderla no deja una huella clínica clara.";
+      }
+      break;
+    default:
+      narrative = "La medicación suspendida no cambia mucho el caso.";
+  }
+
+  const threshold = applyThresholdPenalties(previousStats, stats);
+  stats = threshold.stats;
+  narrative = [narrative, ...threshold.messages].filter(Boolean).join(" ");
+
+  next.stats = stats;
+  addLog(next, narrative);
+  return next;
+};
+
 const applyAction = (state: GameState, action: ActionKey) => {
   const next = { ...state };
   const previousStats = { ...next.stats };
@@ -479,6 +523,9 @@ const applyAction = (state: GameState, action: ActionKey) => {
       next.flags.contactsIdentified = true;
       next.hidden.outbreakRisk = clamp(next.hidden.outbreakRisk - 1, 0, 4);
       narrative = "Se reconstruye la lista de contactos y la prevención gana terreno.";
+      break;
+    case "suspender":
+      narrative = "Primero hay que elegir qué medicación se va a suspender.";
       break;
     case "planta":
       next.flags.admittedWard = true;
@@ -693,6 +740,10 @@ const applySingleChoice = (state: GameState, choice: TurnChoice) => {
     next = applyMedication(next, normalizeDose(choice.doseMg));
   }
 
+  if (choice.kind === "suspension") {
+    next = applySuspension(next, choice.key);
+  }
+
   if (choice.kind === "action") {
     next = applyAction(next, choice.key);
   }
@@ -776,6 +827,7 @@ export const getActionOutcomePreview = (choice: {
     if (choice.key === "epis") return "La protección del equipo no es un detalle decorativo.";
     if (choice.key === "notificar") return "La salud pública bien activada cambia el final del caso.";
     if (choice.key === "contactos") return "Rastrear contactos corta cadenas de transmisión.";
+    if (choice.key === "suspender") return "Elige qué medicación retirar antes de avanzar.";
     if (choice.key === "planta") return "Puede ordenar cuidados, pero no sustituye el control infeccioso.";
     if (choice.key === "uci") return "Útil solo cuando la gravedad ya no permite media tinta.";
     if (choice.key === "alta") return "Dar el alta demasiado pronto puede dejar riesgos sin cerrar.";
