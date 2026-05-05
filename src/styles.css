@@ -190,10 +190,11 @@ button {
 }
 
 .vitalMonitor {
+  width: min(310px, 34%);
   display: grid;
-  gap: 10px;
-  padding: 12px;
-  border-radius: 22px;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 18px;
   background:
     linear-gradient(180deg, rgba(4, 10, 12, 0.98), rgba(2, 7, 9, 0.96)),
     radial-gradient(circle at top, rgba(123, 255, 138, 0.08), transparent 44%);
@@ -209,7 +210,7 @@ button {
   gap: 12px;
   align-items: center;
   color: #cfeedd;
-  font-size: 0.82rem;
+  font-size: 0.74rem;
   letter-spacing: 0.02em;
 }
 
@@ -217,14 +218,14 @@ button {
   color: var(--neon);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   text-shadow: 0 0 12px rgba(123, 255, 138, 0.52);
 }
 
 .vitalRows {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 6px;
 }
 
 .vitalRows .vitalPill:last-child {
@@ -725,20 +726,20 @@ h1 {
 
 .hudOverlay {
   position: absolute;
-  top: 18px;
-  left: 18px;
-  right: 18px;
+  top: 16px;
+  left: 16px;
+  right: 16px;
   z-index: 6;
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   pointer-events: none;
 }
 
 .hudStats {
-  width: min(430px, 54%);
-  padding: 14px;
-  border-radius: 22px;
+  width: min(285px, 31%);
+  padding: 10px;
+  border-radius: 18px;
   background: rgba(2, 8, 12, 0.76);
   border: 1px solid rgba(45, 212, 191, 0.22);
   backdrop-filter: blur(16px);
@@ -954,7 +955,7 @@ h1 {
 }
 
 .hudPanel {
-  padding: 20px;
+  padding: 10px;
   overflow: hidden;
 }
 
@@ -970,8 +971,8 @@ h1 {
 }
 
 .statBar {
-  padding: 12px 14px;
-  border-radius: 18px;
+  padding: 10px 11px;
+  border-radius: 14px;
   background: rgba(5, 10, 15, 0.72);
   border: 1px solid rgba(123, 255, 138, 0.08);
 }
@@ -979,26 +980,26 @@ h1 {
 .statBar__top {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 10px;
-  font-size: 0.94rem;
+  margin-bottom: 8px;
+  font-size: 0.8rem;
   color: #d6f7df;
 }
 
 .statBar__label {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
 }
 
 .statBar__icon {
-  font-size: 1.06rem;
+  font-size: 0.95rem;
   line-height: 1;
 }
 
 .statBar__track {
-  height: 10px;
+  height: 8px;
   border-radius: 999px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.05);
@@ -1409,8 +1410,8 @@ h1 {
 }
 
 .vitalPill {
-  padding: 12px 14px;
-  border-radius: 18px;
+  padding: 10px 12px;
+  border-radius: 15px;
   background: rgba(3, 7, 8, 0.72);
   border: 1px solid rgba(123, 255, 138, 0.1);
 }
@@ -1418,13 +1419,13 @@ h1 {
 .vitalPill span {
   display: block;
   color: #98f4a8;
-  font-size: 0.78rem;
-  margin-bottom: 4px;
+  font-size: 0.72rem;
+  margin-bottom: 3px;
   text-shadow: 0 0 8px rgba(123, 255, 138, 0.18);
 }
 
 .vitalPill strong {
-  font-size: 1rem;
+  font-size: 0.9rem;
   color: var(--neon);
   text-shadow: 0 0 10px rgba(123, 255, 138, 0.7);
   animation: vitalGlow 2.8s ease-in-out infinite;
