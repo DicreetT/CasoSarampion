@@ -668,6 +668,13 @@ export const advanceTurn = (state: GameState) => {
 
   progressed.visualState = getVisualState(progressed);
 
+  if (progressed.turnIndex === 2 && !progressed.flags.turn2AntibioticApplied) {
+    progressed.stats.complications = clamp(progressed.stats.complications + 2, 0, MAX_COMPLICATIONS);
+    progressed.flags.turn2AntibioticApplied = true;
+    addLog(progressed, "El residente junior pauta amoxicilina y el caso suma dos complicaciones de entrada.");
+    progressed.visualState = getVisualState(progressed);
+  }
+
   if (currentTurn >= turns.length - 1 && progressed.finished === false) {
     progressed.finished = true;
     progressed.outcome = setOutcome(progressed);

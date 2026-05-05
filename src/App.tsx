@@ -53,7 +53,7 @@ const initialState = createInitialState();
 
 const normalizeGameState = (saved: GameState): GameState => {
   const migratedStats =
-    saved.turnIndex >= 2 && !saved.flags?.turn2AntibioticApplied
+    saved.turnIndex >= 2
       ? {
           ...initialState.stats,
           ...saved.stats,
@@ -62,7 +62,7 @@ const normalizeGameState = (saved: GameState): GameState => {
       : { ...initialState.stats, ...saved.stats };
 
   const migratedFlags =
-    saved.turnIndex >= 2 && !saved.flags?.turn2AntibioticApplied
+    saved.turnIndex >= 2
       ? {
           ...initialState.flags,
           ...saved.flags,
