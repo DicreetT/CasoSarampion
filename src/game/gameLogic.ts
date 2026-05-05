@@ -150,8 +150,8 @@ export const turns: TurnDefinition[] = [
 const clamp = (value: number, min: number, max: number) =>
   Math.max(min, Math.min(max, value));
 
-const MAX_FEVER = 4;
-const MAX_COMPLICATIONS = 4;
+const MAX_FEVER = 3;
+const MAX_COMPLICATIONS = 3;
 
 const applyThresholdPenalties = (previousStats: Stats, stats: Stats) => {
   const nextStats = { ...stats };

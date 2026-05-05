@@ -56,14 +56,22 @@ const supportLabelByKey = new Map(supportOptions.map((option) => [option.key, op
 const initialState = createInitialState();
 
 const normalizeGameState = (saved: GameState): GameState => {
+  const clampStat = (value: number | undefined, max: number) => Math.max(0, Math.min(max, value ?? 0));
+
   const migratedStats =
     saved.turnIndex >= 2
       ? {
           ...initialState.stats,
           ...saved.stats,
-          complications: Math.max(saved.stats?.complications ?? 0, 2),
+          complications: clampStat(Math.max(saved.stats?.complications ?? 0, 2), 3),
+          fever: clampStat(saved.stats?.fever, 3),
         }
-      : { ...initialState.stats, ...saved.stats };
+      : {
+          ...initialState.stats,
+          ...saved.stats,
+          complications: clampStat(saved.stats?.complications, 3),
+          fever: clampStat(saved.stats?.fever, 3),
+        };
 
   const migratedFlags =
     saved.turnIndex >= 2
@@ -170,7 +178,7 @@ const PatientIllustration = ({ state }: { state: GameState }) => {
     if (state.turnIndex === 3) return dehydratedImage;
     if (state.stats.life <= 1) return `${assetBase}critical.png`;
     if (state.stats.complications >= 2) return `${assetBase}respiratory.png`;
-    if (state.stats.fever > 3) return `${assetBase}fever.png`;
+    if (state.stats.fever >= 3) return `${assetBase}fever.png`;
     return normalImage;
   };
   const breathingMotion =
@@ -403,8 +411,8 @@ export default function App() {
             <div className="hudOverlay">
               <div className="hudPanel hudPanel--left">
                 <StatBar icon="❤️" label="VIDA" value={state.stats.life} max={4} />
-                <StatBar icon="🌡️" label="FIEBRE" value={state.stats.fever} max={4} />
-                <StatBar icon="⚠️" label="COMPLICACIONES" value={state.stats.complications} max={4} />
+                <StatBar icon="🌡️" label="FIEBRE" value={state.stats.fever} max={3} />
+                <StatBar icon="⚠️" label="COMPLICACIONES" value={state.stats.complications} max={3} />
               </div>
 
               <div className="vitalMonitor">
