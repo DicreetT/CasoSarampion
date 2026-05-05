@@ -979,10 +979,17 @@ h1 {
 
 .statBar__top {
   display: flex;
+  align-items: center;
   justify-content: space-between;
+  gap: 12px;
   margin-bottom: 8px;
   font-size: 0.8rem;
   color: #d6f7df;
+}
+
+.statBar__top strong {
+  flex-shrink: 0;
+  margin-left: 8px;
 }
 
 .statBar__label {
