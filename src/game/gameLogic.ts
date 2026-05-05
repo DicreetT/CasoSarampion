@@ -177,7 +177,7 @@ export const createInitialState = (): GameState => ({
   visualState: "normal",
   selectedTab: "Acciones",
   selectedMedication: null,
-  selectedDoseMg: "500",
+  selectedDoseMg: "0",
   narrative:
     "Un paciente joven entra con un cuadro compatible con sarampión. El caso avanza por turnos y cada decisión modifica su evolución personal.",
   eventLog: [],
@@ -372,7 +372,11 @@ const applyMedication = (state: GameState, doseMg: number) => {
       break;
     }
     case "amoxicilina": {
-      stats.iatrogenia = clamp(stats.iatrogenia + 1, 0, 3);
+      stats.iatrogenia = clamp(stats.iatrogenia + 2, 0, 3);
+      if (stats.iatrogenia >= 3) {
+        stats.life = clamp(stats.life - 3, 0, 4);
+        stats.complications = clamp(stats.complications + 3, 0, 5);
+      }
       narrative = "El antibiótico no cambia el cuadro viral y añade ruido terapéutico.";
       if (turn === 2) {
         next.hidden.outbreakRisk = clamp(next.hidden.outbreakRisk + 1, 0, 4);

@@ -15,8 +15,6 @@ import {
   type TurnChoice,
 } from "./game/gameLogic";
 import {
-  clearSavedGameState,
-  clearSavedTurnHistory,
   loadSavedGameState,
   loadSavedTurnHistory,
   saveGameState,
@@ -159,7 +157,15 @@ const PatientIllustration = ({ state }: { state: GameState }) => {
 };
 
 export default function App() {
-  const [state, setState] = useState<GameState>(() => loadSavedGameState() ?? initialState);
+  const [state, setState] = useState<GameState>(() => {
+    const saved = loadSavedGameState();
+    if (!saved) return initialState;
+
+    return {
+      ...saved,
+      selectedDoseMg: saved.selectedMedication ? saved.selectedDoseMg : "0",
+    };
+  });
   const [selectedChoices, setSelectedChoices] = useState<TurnChoice[]>([]);
   const [turnHistory, setTurnHistory] = useState<GameState[]>(() => loadSavedTurnHistory());
   const [previewText, setPreviewText] = useState(
@@ -194,16 +200,6 @@ export default function App() {
         return "";
     }
   }, [state.visualState]);
-
-  const resetGame = () => {
-    const fresh = createInitialState();
-    clearSavedGameState();
-    clearSavedTurnHistory();
-    setState(fresh);
-    setSelectedChoices([]);
-    setTurnHistory([]);
-    setPreviewText("Selecciona una intervención del pocket médico y aplica la decisión para avanzar al siguiente turno.");
-  };
 
   const goBackTurn = () => {
     setTurnHistory((current) => {
@@ -302,7 +298,7 @@ export default function App() {
     );
 
     setTurnHistory((current) => [...current, state]);
-    setState({ ...next, selectedMedication: null, selectedDoseMg: "500" });
+    setState({ ...next, selectedMedication: null, selectedDoseMg: "0" });
     setSelectedChoices([]);
     setPreviewText(next.narrative);
   };
@@ -427,7 +423,6 @@ export default function App() {
                 >
                   <div>
                     <strong>{med.label}</strong>
-                    <small>{med.help}</small>
                   </div>
                 </motion.button>
               ))}
@@ -478,7 +473,6 @@ export default function App() {
                 >
                   <div>
                     <strong>{action.label}</strong>
-                    <small>{action.help}</small>
                   </div>
                 </motion.button>
               ))}
@@ -497,7 +491,6 @@ export default function App() {
                 >
                   <div>
                     <strong>{support.label}</strong>
-                    <small>{support.help}</small>
                   </div>
                 </motion.button>
               ))}
@@ -534,15 +527,6 @@ export default function App() {
               </div>
             ))}
           </div>
-
-          <motion.button
-            type="button"
-            className="ghostButton"
-            onClick={resetGame}
-            {...tapFeedback}
-          >
-            Reiniciar caso
-          </motion.button>
         </section>
       </main>
     </motion.div>
