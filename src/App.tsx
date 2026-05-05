@@ -242,7 +242,7 @@ export default function App() {
   };
 
   const currentOutcome = state.outcome;
-  const contagionOpacity = state.flags.isolated ? 0 : Math.min(0.95, state.hidden.outbreakRisk / 5);
+  const contagionOpacity = state.flags.isolated ? 0 : Math.min(0.95, state.hidden.outbreakRisk / 4);
   const contagionActive = contagionOpacity > 0.04;
   const historyRows = [
     {
@@ -268,17 +268,17 @@ export default function App() {
 
       <main className="simulatorFrame">
         <section className={`heroScene ${visualClass}`}>
+          <div className="turnBanner">
+            <span>TURNO {turn.id} DE {turns.length}</span>
+            <p>{turn.scene}</p>
+            <strong>¿Qué decides hacer?</strong>
+          </div>
+
           <div className="hudPanel hudPanel--left">
             <StatBar icon="❤️" label="VIDA" value={state.stats.life} max={4} />
             <StatBar icon="🌡️" label="FIEBRE" value={state.stats.fever} max={5} />
             <StatBar icon="⚠️" label="COMPLICACIONES" value={state.stats.complications} max={5} />
             <StatBar icon="☠️" label="IATROGENIA" value={state.stats.iatrogenia} max={3} />
-          </div>
-
-          <div className="turnBanner">
-            <span>TURNO {turn.id + 1} DE {turns.length}</span>
-            <p>{turn.scene}</p>
-            <strong>¿Qué decides hacer?</strong>
           </div>
 
           <div className="vitalMonitor">

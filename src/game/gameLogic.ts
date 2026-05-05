@@ -38,6 +38,7 @@ export interface Flags {
   admittedWard: boolean;
   admittedUci: boolean;
   improvedAtLeastOnce: boolean;
+  paracetamolGiven: boolean;
 }
 
 export interface GameState {
@@ -99,9 +100,9 @@ export type SupportKey =
 export const turns: TurnDefinition[] = [
   {
     id: 0,
-    label: "Llamada desde el coffee break",
-    scene: "Paciente de 21 años con fiebre, tos, coriza, conjuntivitis y exantema.",
-    focus: "Caso en evolución desde el coffee break. Lee la escena con calma antes de decidir.",
+    label: "Coffee break",
+    scene: "Te llaman mientras tomas café: paciente de 21 años con fiebre, tos, coriza, conjuntivitis y exantema.",
+    focus: "El primer gesto clínico importa más que la prisa.",
   },
   {
     id: 1,
@@ -156,7 +157,7 @@ export const createInitialState = (): GameState => ({
     life: 4,
     iatrogenia: 0,
     complications: 0,
-    fever: 1,
+    fever: 2,
   },
   hidden: {
     outbreakRisk: 0,
@@ -183,6 +184,7 @@ export const createInitialState = (): GameState => ({
     admittedWard: false,
     admittedUci: false,
     improvedAtLeastOnce: false,
+    paracetamolGiven: false,
   },
   outcome: null,
 });
@@ -299,7 +301,7 @@ const setOutcome = (state: GameState): Outcome => {
     };
   }
 
-  if (state.hidden.outbreakRisk >= 3) {
+  if (state.hidden.outbreakRisk >= 4) {
     return {
       id: "brote_hospitalario",
       title: "Paciente vivo, pero causaste un brote hospitalario",
@@ -352,12 +354,13 @@ const applyMedication = (state: GameState, doseMg: number) => {
         vitals.temperature = Math.max(36.8, vitals.temperature - 0.6);
         narrative = "El paracetamol baja la curva térmica y da un respiro clínico.";
         next.flags.improvedAtLeastOnce = true;
-      } else if (doseMg > 1500) {
-        stats.iatrogenia = clamp(stats.iatrogenia + 1, 0, 3);
-        narrative = "La dosis supera lo prudente y deja una sombra clara de iatrogenia.";
+        next.flags.paracetamolGiven = true;
       } else if (doseMg > 0) {
-        stats.fever = clamp(stats.fever - 1, 0, 5);
-        narrative = "La analgesia-antitérmica ayuda, aunque el efecto es menos redondo de lo esperado.";
+        stats.iatrogenia = clamp(stats.iatrogenia + 1, 0, 3);
+        stats.complications = clamp(stats.complications + 1, 0, 5);
+        stats.fever = clamp(stats.fever + 1, 0, 5);
+        stats.life = clamp(stats.life - 1, 0, 4);
+        narrative = "La dosis fuera de rango deja iatrogenia y empeora el curso clínico.";
       } else {
         narrative = "No se administra una dosis útil.";
       }
@@ -367,7 +370,7 @@ const applyMedication = (state: GameState, doseMg: number) => {
       stats.iatrogenia = clamp(stats.iatrogenia + 1, 0, 3);
       narrative = "El antibiótico no cambia el cuadro viral y añade ruido terapéutico.";
       if (turn === 2) {
-        next.hidden.outbreakRisk = clamp(next.hidden.outbreakRisk + 1, 0, 5);
+        next.hidden.outbreakRisk = clamp(next.hidden.outbreakRisk + 1, 0, 4);
       }
       break;
     }
@@ -423,27 +426,28 @@ const applyAction = (state: GameState, action: ActionKey) => {
   const next = { ...state };
   const stats = { ...next.stats };
   const vitals = { ...next.vitals };
+  const turn = getTurn(state).id;
   let narrative = "";
 
   switch (action) {
     case "aislamiento":
       next.flags.isolated = true;
-      next.hidden.outbreakRisk = clamp(next.hidden.outbreakRisk - 2, 0, 5);
+      next.hidden.outbreakRisk = clamp(next.hidden.outbreakRisk - 2, 0, 4);
       narrative = "Se activa aislamiento respiratorio y el circuito asistencial deja de estar tan expuesto.";
       break;
     case "epis":
       next.flags.ppe = true;
-      next.hidden.outbreakRisk = clamp(next.hidden.outbreakRisk - 1, 0, 5);
+      next.hidden.outbreakRisk = clamp(next.hidden.outbreakRisk - 1, 0, 4);
       narrative = "La protección del equipo mejora y el contacto cercano pierde parte de su peligro.";
       break;
     case "notificar":
       next.flags.publicHealthNotified = true;
-      next.hidden.outbreakRisk = clamp(next.hidden.outbreakRisk - 1, 0, 5);
+      next.hidden.outbreakRisk = clamp(next.hidden.outbreakRisk - 1, 0, 4);
       narrative = "Salud pública entra en escena y el caso deja de ser solo un problema de la sala.";
       break;
     case "contactos":
       next.flags.contactsIdentified = true;
-      next.hidden.outbreakRisk = clamp(next.hidden.outbreakRisk - 1, 0, 5);
+      next.hidden.outbreakRisk = clamp(next.hidden.outbreakRisk - 1, 0, 4);
       narrative = "Se reconstruye la lista de contactos y la prevención gana terreno.";
       break;
     case "planta":
@@ -451,25 +455,30 @@ const applyAction = (state: GameState, action: ActionKey) => {
       stats.complications = clamp(stats.complications + 1, 0, 5);
       narrative = "El ingreso en planta ordena el seguimiento, aunque también añade exposición si no se ha cerrado el control de infecciones.";
       if (!next.flags.isolated || !next.flags.ppe) {
-        next.hidden.outbreakRisk = clamp(next.hidden.outbreakRisk + 1, 0, 5);
+        next.hidden.outbreakRisk = clamp(next.hidden.outbreakRisk + 1, 0, 4);
       }
       break;
     case "uci":
       next.flags.admittedUci = true;
-      stats.life = clamp(stats.life + 1, 0, 4);
-      stats.complications = clamp(stats.complications - 1, 0, 5);
-      vitals.spo2 = Math.min(99, vitals.spo2 + 3);
-      narrative = "La UCI llega a tiempo para la fase de mayor gravedad y estabiliza el escenario.";
-      next.flags.improvedAtLeastOnce = true;
+      if (turn === 5) {
+        stats.life = clamp(stats.life + 1, 0, 4);
+        stats.complications = clamp(stats.complications - 1, 0, 5);
+        vitals.spo2 = Math.min(99, vitals.spo2 + 3);
+        narrative = "La UCI llega a tiempo para la fase de mayor gravedad y estabiliza el escenario.";
+        next.flags.improvedAtLeastOnce = true;
+      } else {
+        stats.iatrogenia = clamp(stats.iatrogenia + 1, 0, 3);
+        narrative = "No tenemos camillas disponibles: este ingreso en UCI no está justificado ahora mismo.";
+      }
       break;
     case "alta":
-      if (state.stats.complications <= 1 && state.stats.fever <= 1) {
+      if (state.turnIndex >= 5 && state.stats.complications <= 1 && state.stats.fever <= 1) {
         narrative = "El alta con control ambulatorio encaja con una evolución ya contenida.";
         next.flags.improvedAtLeastOnce = true;
       } else {
-        stats.life = clamp(stats.life - 1, 0, 4);
-        stats.complications = clamp(stats.complications + 1, 0, 5);
-        narrative = "Dar el alta demasiado pronto deja piezas importantes sin resolver.";
+        stats.life = clamp(stats.life - 3, 0, 4);
+        stats.complications = clamp(stats.complications + 3, 0, 5);
+        narrative = "Dar el alta demasiado pronto deja al paciente expuesto y empeora el caso.";
       }
       break;
     case "observar":
@@ -536,21 +545,23 @@ const applyTurnPressure = (state: GameState) => {
   const vitals = { ...next.vitals };
   const turn = getTurn(next).id;
 
-  if (turn === 0 && (!next.flags.isolated || !next.flags.ppe)) {
-    hidden.outbreakRisk = clamp(hidden.outbreakRisk + 1, 0, 5);
-  }
-
   if (turn === 1) {
-    stats.fever = clamp(stats.fever + 1, 0, 5);
-    vitals.temperature = Math.max(vitals.temperature, 39.5);
+    if (next.flags.paracetamolGiven) {
+      vitals.temperature = Math.max(37.8, vitals.temperature - 0.2);
+    } else {
+      stats.life = clamp(stats.life - 1, 0, 4);
+      stats.fever = clamp(stats.fever + 1, 0, 5);
+      stats.complications = clamp(stats.complications + 1, 0, 5);
+      vitals.temperature = Math.max(vitals.temperature, 39.5);
+    }
   }
 
   if (turn === 2) {
     if (!next.flags.publicHealthNotified) {
-      hidden.outbreakRisk = clamp(hidden.outbreakRisk + 1, 0, 5);
+      hidden.outbreakRisk = clamp(hidden.outbreakRisk + 1, 0, 4);
     }
     if (!next.flags.contactsIdentified) {
-      hidden.outbreakRisk = clamp(hidden.outbreakRisk + 1, 0, 5);
+      hidden.outbreakRisk = clamp(hidden.outbreakRisk + 1, 0, 4);
     }
   }
 
@@ -572,10 +583,10 @@ const applyTurnPressure = (state: GameState) => {
 
   if (turn === 6) {
     if (!next.flags.publicHealthNotified) {
-      hidden.outbreakRisk = clamp(hidden.outbreakRisk + 1, 0, 5);
+      hidden.outbreakRisk = clamp(hidden.outbreakRisk + 1, 0, 4);
     }
     if (!next.flags.contactsIdentified) {
-      hidden.outbreakRisk = clamp(hidden.outbreakRisk + 1, 0, 5);
+      hidden.outbreakRisk = clamp(hidden.outbreakRisk + 1, 0, 4);
     }
   }
 
@@ -616,6 +627,7 @@ export const applyChoice = (
     | { kind: "support"; key: SupportKey },
 ) => {
   let next = { ...state };
+  const wasTurnZero = state.turnIndex === 0;
 
   if (choice.kind === "medication") {
     next.selectedMedication = choice.key;
@@ -629,6 +641,16 @@ export const applyChoice = (
 
   if (choice.kind === "support") {
     next = applySupport(next, choice.key);
+  }
+
+  if (wasTurnZero) {
+    const protectedTurnZero =
+      choice.kind === "action" &&
+      (choice.key === "aislamiento" || choice.key === "epis" || choice.key === "notificar");
+
+    if (!protectedTurnZero) {
+      next.hidden.outbreakRisk = clamp(next.hidden.outbreakRisk + 3, 0, 4);
+    }
   }
 
   next = advanceTurn(next);
@@ -667,7 +689,7 @@ export const getActionOutcomePreview = (choice: {
     if (choice.key === "paracetamol") {
       const dose = normalizeDose(choice.doseMg ?? "0");
       if (dose >= 500 && dose <= 1000) return "Una dosis prudente puede bajar la fiebre sin sumar ruido.";
-      if (dose > 1500) return "La dosis es más alta de lo razonable y añade iatrogenia.";
+      if (dose > 0) return "Fuera de rango, el antitérmico deja de ser una ayuda limpia.";
       return "El efecto antitérmico será modesto.";
     }
 
@@ -684,7 +706,7 @@ export const getActionOutcomePreview = (choice: {
     if (choice.key === "notificar") return "La salud pública bien activada cambia el final del caso.";
     if (choice.key === "contactos") return "Rastrear contactos corta cadenas de transmisión.";
     if (choice.key === "planta") return "Puede ordenar cuidados, pero no sustituye el control infeccioso.";
-    if (choice.key === "uci") return "Útil cuando la gravedad ya no permite media tinta.";
+    if (choice.key === "uci") return "Útil solo cuando la gravedad ya no permite media tinta.";
     if (choice.key === "alta") return "Dar el alta demasiado pronto puede dejar riesgos sin cerrar.";
     if (choice.key === "observar") return "A veces observar es exactamente la intervención correcta.";
   }
