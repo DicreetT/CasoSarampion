@@ -112,7 +112,7 @@ export const turns: TurnDefinition[] = [
   {
     id: 1,
     label: "Fiebre 39.5 C",
-    scene: "La temperatura sube y la sala empieza a parecer demasiado pequeña.",
+    scene: "La temperatura del paciente sube y la tos continua.",
     focus: "El control sintomático puede ayudar, pero hay que evitar complicaciones.",
   },
   {
@@ -586,11 +586,12 @@ const applyTurnPressure = (state: GameState) => {
   const turn = getTurn(next).id;
 
   if (turn === 1) {
+    stats.fever = clamp(stats.fever + 2, 0, MAX_FEVER);
+
     if (next.flags.paracetamolGiven) {
       vitals.temperature = Math.max(37.8, vitals.temperature - 0.2);
     } else {
       stats.life = clamp(stats.life - 1, 0, 4);
-      stats.fever = clamp(stats.fever + 2, 0, MAX_FEVER);
       vitals.temperature = Math.max(vitals.temperature, 39.5);
     }
 

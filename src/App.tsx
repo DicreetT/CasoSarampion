@@ -59,7 +59,15 @@ const normalizeGameState = (saved: GameState): GameState => {
   const clampStat = (value: number | undefined, max: number) => Math.max(0, Math.min(max, value ?? 0));
 
   const migratedStats =
-    saved.turnIndex >= 2
+    saved.turnIndex === 1
+      ? {
+          ...initialState.stats,
+          ...saved.stats,
+          life: Math.min(saved.stats?.life ?? initialState.stats.life, 3),
+          fever: clampStat(Math.max(saved.stats?.fever ?? 0, 3), 3),
+          complications: clampStat(Math.max(saved.stats?.complications ?? 0, 2), 3),
+        }
+      : saved.turnIndex >= 2
       ? {
           ...initialState.stats,
           ...saved.stats,
@@ -82,11 +90,20 @@ const normalizeGameState = (saved: GameState): GameState => {
         }
       : { ...initialState.flags, ...saved.flags };
 
+  const migratedVitals =
+    saved.turnIndex === 1
+      ? {
+          ...initialState.vitals,
+          ...saved.vitals,
+          temperature: Math.max(saved.vitals?.temperature ?? initialState.vitals.temperature, 39.3),
+        }
+      : { ...initialState.vitals, ...saved.vitals };
+
   return {
     ...initialState,
     ...saved,
     stats: migratedStats,
-    vitals: { ...initialState.vitals, ...saved.vitals },
+    vitals: migratedVitals,
     hidden: { ...initialState.hidden, ...saved.hidden },
     flags: migratedFlags,
     eventLog: saved.eventLog ?? [],
