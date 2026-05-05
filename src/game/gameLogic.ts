@@ -33,6 +33,7 @@ export interface Flags {
   ppe: boolean;
   infectionControlWindowMet: boolean;
   turn2AntibioticApplied: boolean;
+  corticoidesSuspended: boolean;
   publicHealthNotified: boolean;
   contactsIdentified: boolean;
   admittedWard: boolean;
@@ -215,6 +216,7 @@ export const createInitialState = (): GameState => ({
     ppe: false,
     infectionControlWindowMet: false,
     turn2AntibioticApplied: false,
+    corticoidesSuspended: false,
     publicHealthNotified: false,
     contactsIdentified: false,
     admittedWard: false,
@@ -469,6 +471,9 @@ const applySuspension = (state: GameState, medication: MedicationKey) => {
       stats.complications = clamp(stats.complications - 1, 0, MAX_COMPLICATIONS);
       narrative = "Se suspende una pauta innecesaria y el ruido iatrogénico empieza a aflojar.";
       next.flags.improvedAtLeastOnce = true;
+      if (medication === "corticoides") {
+        next.flags.corticoidesSuspended = true;
+      }
       break;
     case "vitaminaA":
       narrative = "Suspender este apoyo no cambia demasiado la trayectoria clínica.";
@@ -664,7 +669,6 @@ const applyTurnPressure = (state: GameState) => {
     if (!next.flags.turn2AntibioticApplied) {
       stats.complications = clamp(stats.complications + 2, 0, MAX_COMPLICATIONS);
       next.flags.turn2AntibioticApplied = true;
-      addLog(next, "Le he puesto corticoides para controlar la inflamación y el paciente muestra mejoria.");
     }
     if (!next.flags.publicHealthNotified) {
       hidden.outbreakRisk = clamp(hidden.outbreakRisk + 1, 0, 4);
@@ -723,12 +727,29 @@ export const advanceTurn = (state: GameState) => {
 
   progressed.visualState = getVisualState(progressed);
 
+  const entryPreviousStats = { ...progressed.stats };
+  const entryMessages: string[] = [];
+
   if (progressed.turnIndex === 2 && !progressed.flags.turn2AntibioticApplied) {
     progressed.stats.complications = clamp(progressed.stats.complications + 2, 0, MAX_COMPLICATIONS);
     progressed.flags.turn2AntibioticApplied = true;
-    addLog(progressed, "Le he puesto corticoides para controlar la inflamación y el paciente muestra mejoria.");
-    progressed.visualState = getVisualState(progressed);
+    entryMessages.push("Le he puesto corticoides para controlar la inflamación y el paciente muestra mejoria.");
   }
+
+  if (progressed.turnIndex >= 2 && !progressed.flags.corticoidesSuspended) {
+    progressed.stats.complications = clamp(progressed.stats.complications + 1, 0, MAX_COMPLICATIONS);
+    entryMessages.push("Los corticoides siguen activos y suman complicaciones turno a turno.");
+  }
+
+  const entryThreshold = applyThresholdPenalties(entryPreviousStats, progressed.stats);
+  progressed.stats = entryThreshold.stats;
+  entryMessages.push(...entryThreshold.messages);
+
+  if (entryMessages.length) {
+    addLog(progressed, entryMessages.join(" "));
+  }
+
+  progressed.visualState = getVisualState(progressed);
 
   if (currentTurn >= turns.length - 1 && progressed.finished === false) {
     progressed.finished = true;

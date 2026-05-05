@@ -72,7 +72,10 @@ const normalizeGameState = (saved: GameState): GameState => {
       ? {
           ...initialState.stats,
           ...saved.stats,
-          complications: clampStat(Math.max(saved.stats?.complications ?? 0, 2), 3),
+          complications: clampStat(
+            Math.max(saved.stats?.complications ?? 0, saved.flags?.corticoidesSuspended ? 2 : 3),
+            3,
+          ),
           fever: clampStat(saved.stats?.fever, 3),
         }
       : {
