@@ -51,6 +51,19 @@ const supportOptions: Array<{ key: SupportKey; label: string; help: string }> = 
 
 const initialState = createInitialState();
 
+const normalizeGameState = (saved: GameState): GameState => ({
+  ...initialState,
+  ...saved,
+  stats: { ...initialState.stats, ...saved.stats },
+  vitals: { ...initialState.vitals, ...saved.vitals },
+  hidden: { ...initialState.hidden, ...saved.hidden },
+  flags: { ...initialState.flags, ...saved.flags },
+  eventLog: saved.eventLog ?? [],
+  selectedDoseMg: saved.selectedMedication ? saved.selectedDoseMg : "0",
+  narrative: saved.narrative ?? initialState.narrative,
+  outcome: saved.outcome ?? null,
+});
+
 const tapFeedback = {
   whileTap: { scale: 0.985 },
   whileHover: { y: -2 },
@@ -161,13 +174,12 @@ export default function App() {
     const saved = loadSavedGameState();
     if (!saved) return initialState;
 
-    return {
-      ...saved,
-      selectedDoseMg: saved.selectedMedication ? saved.selectedDoseMg : "0",
-    };
+    return normalizeGameState(saved);
   });
   const [selectedChoices, setSelectedChoices] = useState<TurnChoice[]>([]);
-  const [turnHistory, setTurnHistory] = useState<GameState[]>(() => loadSavedTurnHistory());
+  const [turnHistory, setTurnHistory] = useState<GameState[]>(() =>
+    loadSavedTurnHistory().map(normalizeGameState),
+  );
   const [previewText, setPreviewText] = useState(
     "Selecciona una intervención del pocket médico y aplica la decisión para avanzar al siguiente turno.",
   );

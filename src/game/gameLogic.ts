@@ -33,6 +33,7 @@ export interface Vitals {
 export interface Flags {
   isolated: boolean;
   ppe: boolean;
+  infectionControlWindowMet: boolean;
   publicHealthNotified: boolean;
   contactsIdentified: boolean;
   admittedWard: boolean;
@@ -218,6 +219,7 @@ export const createInitialState = (): GameState => ({
   flags: {
     isolated: false,
     ppe: false,
+    infectionControlWindowMet: false,
     publicHealthNotified: false,
     contactsIdentified: false,
     admittedWard: false,
@@ -340,7 +342,7 @@ const setOutcome = (state: GameState): Outcome => {
     };
   }
 
-  if (state.hidden.outbreakRisk >= 4) {
+  if (!state.flags.infectionControlWindowMet || state.hidden.outbreakRisk >= 4) {
     return {
       id: "brote_hospitalario",
       title: "Paciente vivo, pero causaste un brote hospitalario",
@@ -481,13 +483,21 @@ const applyAction = (state: GameState, action: ActionKey) => {
   switch (action) {
     case "aislamiento":
       next.flags.isolated = true;
-      next.hidden.outbreakRisk = clamp(next.hidden.outbreakRisk - 2, 0, 4);
-      narrative = "Se activa aislamiento respiratorio y el circuito asistencial deja de estar tan expuesto.";
+      if (turn <= 1) {
+        next.hidden.outbreakRisk = clamp(next.hidden.outbreakRisk - 2, 0, 4);
+        narrative = "Se activa aislamiento respiratorio y el circuito asistencial deja de estar tan expuesto.";
+      } else {
+        narrative = "El aislamiento llega tarde para cambiar el contagio hospitalario ya decidido.";
+      }
       break;
     case "epis":
       next.flags.ppe = true;
-      next.hidden.outbreakRisk = clamp(next.hidden.outbreakRisk - 1, 0, 4);
-      narrative = "La protección del equipo mejora y el contacto cercano pierde parte de su peligro.";
+      if (turn <= 1) {
+        next.hidden.outbreakRisk = clamp(next.hidden.outbreakRisk - 1, 0, 4);
+        narrative = "La protección del equipo mejora y el contacto cercano pierde parte de su peligro.";
+      } else {
+        narrative = "Los EPIs llegan tarde para revertir el riesgo oculto del caso.";
+      }
       break;
     case "notificar":
       next.flags.publicHealthNotified = true;
@@ -613,9 +623,15 @@ const applyTurnPressure = (state: GameState) => {
       vitals.temperature = Math.max(vitals.temperature, 39.5);
     }
 
-    if (!(next.flags.isolated && next.flags.ppe)) {
+    next.flags.infectionControlWindowMet = next.flags.isolated && next.flags.ppe;
+
+    if (!next.flags.infectionControlWindowMet) {
       hidden.outbreakRisk = 4;
     }
+  }
+
+  if (turn > 1 && !next.flags.infectionControlWindowMet) {
+    hidden.outbreakRisk = 4;
   }
 
   if (turn === 2) {
