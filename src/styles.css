@@ -326,6 +326,44 @@ button {
   text-transform: uppercase;
 }
 
+.selectionSummary {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(123, 255, 138, 0.1);
+  background: rgba(3, 7, 10, 0.7);
+}
+
+.selectionSummary strong {
+  color: #cff8d7;
+  font-size: 0.84rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.selectionChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.selectionChip {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(123, 255, 138, 0.18);
+  background: rgba(123, 255, 138, 0.08);
+  color: #d6fbe0;
+  font-size: 0.78rem;
+}
+
+.selectionChip--muted {
+  color: #8ea0a7;
+  border-color: rgba(109, 207, 246, 0.12);
+  background: rgba(109, 207, 246, 0.06);
+}
+
 .pocketColumns {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

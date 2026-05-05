@@ -97,6 +97,11 @@ export type SupportKey =
   | "reposo"
   | "dieta";
 
+export type TurnChoice =
+  | { kind: "medication"; key: MedicationKey; doseMg: string }
+  | { kind: "action"; key: ActionKey }
+  | { kind: "support"; key: SupportKey };
+
 export const turns: TurnDefinition[] = [
   {
     id: 0,
@@ -554,6 +559,10 @@ const applyTurnPressure = (state: GameState) => {
       stats.complications = clamp(stats.complications + 1, 0, 5);
       vitals.temperature = Math.max(vitals.temperature, 39.5);
     }
+
+    if (!(next.flags.isolated && next.flags.ppe)) {
+      hidden.outbreakRisk = 4;
+    }
   }
 
   if (turn === 2) {
@@ -619,15 +628,8 @@ export const advanceTurn = (state: GameState) => {
   return progressed;
 };
 
-export const applyChoice = (
-  state: GameState,
-  choice:
-    | { kind: "medication"; key: MedicationKey; doseMg: string }
-    | { kind: "action"; key: ActionKey }
-    | { kind: "support"; key: SupportKey },
-) => {
+const applySingleChoice = (state: GameState, choice: TurnChoice) => {
   let next = { ...state };
-  const wasTurnZero = state.turnIndex === 0;
 
   if (choice.kind === "medication") {
     next.selectedMedication = choice.key;
@@ -643,12 +645,24 @@ export const applyChoice = (
     next = applySupport(next, choice.key);
   }
 
-  if (wasTurnZero) {
-    const protectedTurnZero =
-      choice.kind === "action" &&
-      (choice.key === "aislamiento" || choice.key === "epis" || choice.key === "notificar");
+  return next;
+};
 
-    if (!protectedTurnZero) {
+export const applyChoices = (state: GameState, choices: TurnChoice[]) => {
+  let next = { ...state };
+
+  for (const choice of choices) {
+    next = applySingleChoice(next, choice);
+  }
+
+  if (state.turnIndex === 0) {
+    const turnZeroProtected = choices.some(
+      (choice) =>
+        choice.kind === "action" &&
+        (choice.key === "aislamiento" || choice.key === "epis" || choice.key === "notificar"),
+    );
+
+    if (!turnZeroProtected) {
       next.hidden.outbreakRisk = clamp(next.hidden.outbreakRisk + 3, 0, 4);
     }
   }
@@ -660,6 +674,8 @@ export const applyChoice = (
 
   return next;
 };
+
+export const applyChoice = (state: GameState, choice: TurnChoice) => applyChoices(state, [choice]);
 
 export const getPocketSummary = (tab: PocketTab) => {
   switch (tab) {

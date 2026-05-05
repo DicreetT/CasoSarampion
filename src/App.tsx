@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  applyChoice,
+  applyChoices,
   createInitialState,
   getActionOutcomePreview,
   getOutcomeTone,
@@ -12,6 +12,7 @@ import {
   type MedicationKey,
   type VisualState,
   type SupportKey,
+  type TurnChoice,
 } from "./game/gameLogic";
 import { clearSavedGameState, loadSavedGameState, saveGameState } from "./services/sessionStore";
 
@@ -97,6 +98,16 @@ const VitalPill = ({ label, value, tone = "neutral" }: { label: string; value: s
   </div>
 );
 
+const choiceId = (choice: TurnChoice) => `${choice.kind}:${choice.key}`;
+
+const choiceLabel = (choice: TurnChoice) => {
+  if (choice.kind === "medication") {
+    return `${choice.key} ${choice.doseMg}mg`;
+  }
+
+  return choice.key;
+};
+
 const PatientIllustration = ({ state }: { state: GameState }) => {
   const svgState = state.visualState;
   const assetBase = `${import.meta.env.BASE_URL}assets/images/`;
@@ -139,8 +150,7 @@ const PatientIllustration = ({ state }: { state: GameState }) => {
 
 export default function App() {
   const [state, setState] = useState<GameState>(() => loadSavedGameState() ?? initialState);
-  const [selectedAction, setSelectedAction] = useState<ActionKey | null>(null);
-  const [selectedSupport, setSelectedSupport] = useState<SupportKey | null>(null);
+  const [selectedChoices, setSelectedChoices] = useState<TurnChoice[]>([]);
   const [previewText, setPreviewText] = useState(
     "Selecciona una intervención del pocket médico y aplica la decisión para avanzar al siguiente turno.",
   );
@@ -174,71 +184,90 @@ export default function App() {
     const fresh = createInitialState();
     clearSavedGameState();
     setState(fresh);
-    setSelectedAction(null);
-    setSelectedSupport(null);
+    setSelectedChoices([]);
     setPreviewText("Selecciona una intervención del pocket médico y aplica la decisión para avanzar al siguiente turno.");
   };
 
-  const chooseMedication = (key: MedicationKey) => {
-    setState((current) => ({ ...current, selectedMedication: key }));
-    setSelectedAction(null);
-    setSelectedSupport(null);
-    setPreviewText(getActionOutcomePreview({ kind: "medication", key, doseMg: state.selectedDoseMg }));
+  const hasChoice = (choice: TurnChoice) => selectedChoices.some((item) => choiceId(item) === choiceId(choice));
+
+  const updateMedicationChoice = (key: MedicationKey) => {
+    setSelectedChoices((current) => {
+      const existingMedicationIndex = current.findIndex((item) => item.kind === "medication");
+      const updatedChoice: TurnChoice = { kind: "medication", key, doseMg: state.selectedDoseMg };
+
+      if (existingMedicationIndex >= 0) {
+        const updated = [...current];
+        updated[existingMedicationIndex] = updatedChoice;
+        setPreviewText(getActionOutcomePreview({ kind: "medication", key, doseMg: state.selectedDoseMg }));
+        return updated;
+      }
+
+      if (current.length >= 2) {
+        setPreviewText("Máximo 2 decisiones por turno.");
+        return current;
+      }
+
+      setPreviewText(getActionOutcomePreview({ kind: "medication", key, doseMg: state.selectedDoseMg }));
+      return [...current, updatedChoice];
+    });
   };
 
-  const chooseAction = (key: ActionKey) => {
-    setSelectedAction(key);
-    setSelectedSupport(null);
-    setState((current) => ({ ...current, selectedMedication: null }));
-    setPreviewText(getActionOutcomePreview({ kind: "action", key }));
+  const toggleActionChoice = (key: ActionKey) => {
+    setSelectedChoices((current) => {
+      const existing = current.findIndex((item) => item.kind === "action" && item.key === key);
+      if (existing >= 0) {
+        const updated = current.filter((item) => !(item.kind === "action" && item.key === key));
+        setPreviewText(getActionOutcomePreview({ kind: "action", key }));
+        return updated;
+      }
+
+      if (current.length >= 2) {
+        setPreviewText("Máximo 2 decisiones por turno.");
+        return current;
+      }
+
+      setPreviewText(getActionOutcomePreview({ kind: "action", key }));
+      return [...current, { kind: "action", key }];
+    });
   };
 
-  const chooseSupport = (key: SupportKey) => {
-    setSelectedSupport(key);
-    setSelectedAction(null);
-    setState((current) => ({ ...current, selectedMedication: null }));
-    setPreviewText(getActionOutcomePreview({ kind: "support", key }));
+  const toggleSupportChoice = (key: SupportKey) => {
+    setSelectedChoices((current) => {
+      const existing = current.findIndex((item) => item.kind === "support" && item.key === key);
+      if (existing >= 0) {
+        const updated = current.filter((item) => !(item.kind === "support" && item.key === key));
+        setPreviewText(getActionOutcomePreview({ kind: "support", key }));
+        return updated;
+      }
+
+      if (current.length >= 2) {
+        setPreviewText("Máximo 2 decisiones por turno.");
+        return current;
+      }
+
+      setPreviewText(getActionOutcomePreview({ kind: "support", key }));
+      return [...current, { kind: "support", key }];
+    });
   };
 
   const submitChoice = () => {
-    if (state.selectedMedication) {
-      const next = applyChoice(state, {
-        kind: "medication",
-        key: state.selectedMedication,
-        doseMg: state.selectedDoseMg,
-      });
-      setState({ ...next, selectedMedication: null, selectedDoseMg: "500" });
-      setPreviewText(next.narrative);
-      setSelectedAction(null);
-      setSelectedSupport(null);
+    if (!selectedChoices.length) {
+      setPreviewText("Necesitas elegir al menos una intervención antes de avanzar.");
       return;
     }
 
-    if (selectedAction) {
-      const next = applyChoice(state, {
-        kind: "action",
-        key: selectedAction,
-      });
-      setState(next);
-      setPreviewText(next.narrative);
-      setSelectedAction(null);
-      setSelectedSupport(null);
-      return;
-    }
+    const next = applyChoices(
+      state,
+      selectedChoices.map((choice) =>
+        choice.kind === "medication"
+          ? { ...choice, doseMg: state.selectedDoseMg }
+          : choice,
+      ),
+    );
 
-    if (selectedSupport) {
-      const next = applyChoice(state, {
-        kind: "support",
-        key: selectedSupport,
-      });
-      setState(next);
-      setPreviewText(next.narrative);
-      setSelectedAction(null);
-      setSelectedSupport(null);
-      return;
-    }
-
-    setPreviewText("Necesitas elegir una intervención antes de avanzar.");
+    setState({ ...next, selectedMedication: null, selectedDoseMg: "500" });
+    setSelectedChoices([]);
+    setPreviewText(next.narrative);
   };
 
   const currentOutcome = state.outcome;
@@ -322,6 +351,21 @@ export default function App() {
             <h2>Bolsillo médico</h2>
           </div>
 
+          <div className="selectionSummary" aria-live="polite">
+            <strong>{selectedChoices.length}/2 decisiones</strong>
+            <div className="selectionChips">
+              {selectedChoices.length === 0 ? (
+                <span className="selectionChip selectionChip--muted">Aún no has elegido nada</span>
+              ) : (
+                selectedChoices.map((choice) => (
+                  <span key={choiceId(choice)} className="selectionChip">
+                    {choiceLabel(choice)}
+                  </span>
+                ))
+              )}
+            </div>
+          </div>
+
           <div className="pocketColumns">
             <article className="pocketColumn pocketColumn--meds">
               <h3>💊 Medicamentos</h3>
@@ -330,8 +374,8 @@ export default function App() {
                 <motion.button
                   key={med.key}
                   type="button"
-                  className={`pocketItem ${state.selectedMedication === med.key ? "active" : ""}`}
-                  onClick={() => chooseMedication(med.key)}
+                  className={`pocketItem ${hasChoice({ kind: "medication", key: med.key, doseMg: state.selectedDoseMg }) ? "active" : ""}`}
+                  onClick={() => updateMedicationChoice(med.key)}
                   {...tapFeedback}
                 >
                   <div>
@@ -375,8 +419,8 @@ export default function App() {
                 <motion.button
                   key={action.key}
                   type="button"
-                  className={`pocketItem ${selectedAction === action.key ? "active" : ""}`}
-                  onClick={() => chooseAction(action.key)}
+                  className={`pocketItem ${hasChoice({ kind: "action", key: action.key }) ? "active" : ""}`}
+                  onClick={() => toggleActionChoice(action.key)}
                   {...tapFeedback}
                 >
                   <div>
@@ -394,8 +438,8 @@ export default function App() {
                 <motion.button
                   key={support.key}
                   type="button"
-                  className={`pocketItem ${selectedSupport === support.key ? "active" : ""}`}
-                  onClick={() => chooseSupport(support.key)}
+                  className={`pocketItem ${hasChoice({ kind: "support", key: support.key }) ? "active" : ""}`}
+                  onClick={() => toggleSupportChoice(support.key)}
                   {...tapFeedback}
                 >
                   <div>
