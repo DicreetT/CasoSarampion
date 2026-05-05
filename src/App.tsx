@@ -109,6 +109,7 @@ const normalizeGameState = (saved: GameState): GameState => {
     flags: migratedFlags,
     eventLog: saved.eventLog ?? [],
     selectedDoseMg: saved.selectedMedication ? saved.selectedDoseMg : "0",
+    selectedDoseEveryHours: saved.selectedMedication ? saved.selectedDoseEveryHours ?? initialState.selectedDoseEveryHours : initialState.selectedDoseEveryHours,
     narrative: saved.narrative ?? initialState.narrative,
     outcome: saved.outcome ?? null,
   };
@@ -171,7 +172,8 @@ const choiceId = (choice: TurnChoice) => `${choice.kind}:${choice.key}`;
 const choiceLabel = (choice: TurnChoice) => {
   if (choice.kind === "medication") {
     const label = medicationLabelByKey.get(choice.key) ?? choice.key;
-    return `${label} ${choice.doseMg}mg`;
+    const interval = choice.everyHours && Number.parseFloat(choice.everyHours) > 0 ? ` c/${choice.everyHours}h` : "";
+    return `${label} ${choice.doseMg}mg${interval}`;
   }
 
   if (choice.kind === "suspension") {
@@ -308,7 +310,12 @@ export default function App() {
     setSelectedChoices((current) => {
       const suspensionIndex = current.findIndex((item) => item.kind === "suspension");
       const existingMedicationIndex = current.findIndex((item) => item.kind === "medication");
-      const updatedMedicationChoice: TurnChoice = { kind: "medication", key, doseMg: state.selectedDoseMg };
+      const updatedMedicationChoice: TurnChoice = {
+        kind: "medication",
+        key,
+        doseMg: state.selectedDoseMg,
+        everyHours: state.selectedDoseEveryHours,
+      };
       const updatedSuspensionChoice: TurnChoice = { kind: "suspension", key };
 
       if (suspenderMode) {
@@ -338,7 +345,14 @@ export default function App() {
       if (existingMedicationIndex >= 0) {
         const updated = [...current];
         updated[existingMedicationIndex] = updatedMedicationChoice;
-        setPreviewText(getActionOutcomePreview({ kind: "medication", key, doseMg: state.selectedDoseMg }));
+        setPreviewText(
+          getActionOutcomePreview({
+            kind: "medication",
+            key,
+            doseMg: state.selectedDoseMg,
+            everyHours: state.selectedDoseEveryHours,
+          }),
+        );
         return updated;
       }
 
@@ -347,7 +361,14 @@ export default function App() {
         return current;
       }
 
-      setPreviewText(getActionOutcomePreview({ kind: "medication", key, doseMg: state.selectedDoseMg }));
+      setPreviewText(
+        getActionOutcomePreview({
+          kind: "medication",
+          key,
+          doseMg: state.selectedDoseMg,
+          everyHours: state.selectedDoseEveryHours,
+        }),
+      );
       return [...current, updatedMedicationChoice];
     });
     if (!suspenderMode) {
@@ -367,7 +388,12 @@ export default function App() {
           updated.length
             ? getActionOutcomePreview(
                 updated[updated.length - 1].kind === "medication"
-                  ? { kind: "medication", key: updated[updated.length - 1].key, doseMg: state.selectedDoseMg }
+                  ? {
+                      kind: "medication",
+                      key: updated[updated.length - 1].key,
+                      doseMg: state.selectedDoseMg,
+                      everyHours: state.selectedDoseEveryHours,
+                    }
                   : updated[updated.length - 1].kind === "action"
                     ? { kind: "action", key: updated[updated.length - 1].key }
                     : { kind: "support", key: updated[updated.length - 1].key },
@@ -426,13 +452,22 @@ export default function App() {
       state,
       selectedChoices.map((choice) =>
           choice.kind === "medication"
-            ? { ...choice, doseMg: state.selectedDoseMg }
+            ? {
+                ...choice,
+                doseMg: state.selectedDoseMg,
+                everyHours: state.selectedDoseEveryHours,
+              }
             : choice,
       ),
     );
 
     setTurnHistory((current) => [...current, state]);
-    setState({ ...next, selectedMedication: null, selectedDoseMg: "0" });
+    setState({
+      ...next,
+      selectedMedication: null,
+      selectedDoseMg: "0",
+      selectedDoseEveryHours: initialState.selectedDoseEveryHours,
+    });
     setSelectedChoices([]);
     setPreviewText(next.narrative);
   };
@@ -562,7 +597,13 @@ export default function App() {
                   type="button"
                   className={`pocketItem ${
                     (suspenderMode && hasChoice({ kind: "suspension", key: med.key })) ||
-                    (!suspenderMode && hasChoice({ kind: "medication", key: med.key, doseMg: state.selectedDoseMg }))
+                    (!suspenderMode &&
+                      hasChoice({
+                        kind: "medication",
+                        key: med.key,
+                        doseMg: state.selectedDoseMg,
+                        everyHours: state.selectedDoseEveryHours,
+                      }))
                       ? "active"
                       : ""
                   }`}
@@ -593,7 +634,13 @@ export default function App() {
                     if (!suspenderMode) {
                       setSelectedChoices((current) =>
                         current.map((choice) =>
-                          choice.kind === "medication" ? { ...choice, doseMg: dose } : choice,
+                          choice.kind === "medication"
+                            ? {
+                                ...choice,
+                                doseMg: dose,
+                                everyHours: state.selectedDoseEveryHours,
+                              }
+                            : choice,
                         ),
                       );
 
@@ -603,6 +650,50 @@ export default function App() {
                             kind: "medication",
                             key: state.selectedMedication,
                             doseMg: dose,
+                            everyHours: state.selectedDoseEveryHours,
+                          }),
+                        );
+                      }
+                    }
+                  }}
+                />
+              </label>
+
+              <label className="doseControl">
+                <span>Cada cuántas horas</span>
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={state.selectedDoseEveryHours}
+                  readOnly={suspenderMode}
+                  onChange={(event) => {
+                    const everyHours = event.target.value;
+                    setState((current) => ({
+                      ...current,
+                      selectedDoseEveryHours: everyHours,
+                    }));
+
+                    if (!suspenderMode) {
+                      setSelectedChoices((current) =>
+                        current.map((choice) =>
+                          choice.kind === "medication"
+                            ? {
+                                ...choice,
+                                doseMg: state.selectedDoseMg,
+                                everyHours,
+                              }
+                            : choice,
+                        ),
+                      );
+
+                      if (state.selectedMedication) {
+                        setPreviewText(
+                          getActionOutcomePreview({
+                            kind: "medication",
+                            key: state.selectedMedication,
+                            doseMg: state.selectedDoseMg,
+                            everyHours,
                           }),
                         );
                       }
