@@ -240,12 +240,24 @@ button {
 }
 
 .patientCenter .patientIllustrationFrame {
-  width: min(100%, 1000px);
+  width: min(100%, 1040px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.patientCenter .patientIllustrationRaster,
-.patientCenter .patientIllustration {
+.patientCenter .patientIllustrationRaster {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: auto;
+  max-height: 100%;
+  object-fit: contain;
   filter: drop-shadow(0 28px 48px rgba(0, 0, 0, 0.34));
+}
+
+.patientCenter .patientIllustration {
+  display: none;
 }
 
 .contagionBackdrop {
