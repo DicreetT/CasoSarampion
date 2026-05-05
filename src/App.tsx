@@ -161,11 +161,13 @@ const PatientIllustration = ({ state }: { state: GameState }) => {
   const normalImage = `${assetBase}normal.png`;
   const feverImage = `${assetBase}fever.png`;
   const r1Image = `${assetBase}r1.png`;
+  const dehydratedImage = `${assetBase}dehydrated.png`;
   const [imageSrc, setImageSrc] = useState(normalImage);
   const getPatientImage = () => {
     if (state.turnIndex === 0) return normalImage;
     if (state.turnIndex === 1) return feverImage;
     if (state.turnIndex === 2) return r1Image;
+    if (state.turnIndex === 3) return dehydratedImage;
     if (state.stats.life <= 1) return `${assetBase}critical.png`;
     if (state.stats.complications >= 2) return `${assetBase}respiratory.png`;
     if (state.stats.fever > 3) return `${assetBase}fever.png`;
@@ -180,7 +182,7 @@ const PatientIllustration = ({ state }: { state: GameState }) => {
 
   useEffect(() => {
     setImageSrc(getPatientImage());
-  }, [state.turnIndex, state.stats.life, state.stats.complications, state.stats.fever, svgState, r1Image]);
+  }, [state.turnIndex, state.stats.life, state.stats.complications, state.stats.fever, svgState, r1Image, dehydratedImage]);
 
   return (
     <div className="patientIllustrationFrame">
@@ -389,39 +391,43 @@ export default function App() {
             <strong>¿Qué decides hacer?</strong>
           </div>
 
-          <div className="hudPanel hudPanel--left">
-            <StatBar icon="❤️" label="VIDA" value={state.stats.life} max={4} />
-            <StatBar icon="🌡️" label="FIEBRE" value={state.stats.fever} max={4} />
-            <StatBar icon="⚠️" label="COMPLICACIONES" value={state.stats.complications} max={4} />
-          </div>
-
-          <div className="vitalMonitor">
-            <div className="monitorHeader">
-              <span>Monitor de cabecera</span>
-              <strong>{state.visualState.replace("respiratory distress", "distress")}</strong>
-            </div>
-
-            <div className="monitorWave" />
-
-            <div className="vitalRows">
-              <VitalPill label="FC" value={`${state.vitals.hr} lpm`} tone={state.vitals.hr > 115 ? "danger" : "neutral"} />
-              <VitalPill label="FR" value={`${state.vitals.rr}/min`} tone={state.vitals.rr >= 28 ? "danger" : "neutral"} />
-              <VitalPill label="SpO₂" value={`${state.vitals.spo2}%`} tone={state.vitals.spo2 <= 92 ? "danger" : "neutral"} />
-              <VitalPill label="TEMP" value={`${state.vitals.temperature.toFixed(1)} °C`} tone={state.vitals.temperature >= 39 ? "warning" : "neutral"} />
-              <VitalPill label="TA" value={state.vitals.bp} tone="neutral" />
-            </div>
-          </div>
-
-          {contagionActive && (
-            <div className="contagionBackdrop" style={{ opacity: contagionOpacity }}>
-              <span className="contagionSilhouette contagionSilhouette--one" />
-              <span className="contagionSilhouette contagionSilhouette--two" />
-              <span className="contagionSilhouette contagionSilhouette--three" />
-            </div>
-          )}
-
           <div className="patientCenter">
-            <PatientIllustration state={state} />
+            {contagionActive && (
+              <div className="contagionBackdrop" style={{ opacity: contagionOpacity }}>
+                <span className="contagionSilhouette contagionSilhouette--one" />
+                <span className="contagionSilhouette contagionSilhouette--two" />
+                <span className="contagionSilhouette contagionSilhouette--three" />
+              </div>
+            )}
+
+            <div className="hudOverlay">
+              <div className="hudPanel hudPanel--left">
+                <StatBar icon="❤️" label="VIDA" value={state.stats.life} max={4} />
+                <StatBar icon="🌡️" label="FIEBRE" value={state.stats.fever} max={4} />
+                <StatBar icon="⚠️" label="COMPLICACIONES" value={state.stats.complications} max={4} />
+              </div>
+
+              <div className="vitalMonitor">
+                <div className="monitorHeader">
+                  <span>Monitor de cabecera</span>
+                  <strong>{state.visualState.replace("respiratory distress", "distress")}</strong>
+                </div>
+
+                <div className="monitorWave" />
+
+                <div className="vitalRows">
+                  <VitalPill label="FC" value={`${state.vitals.hr} lpm`} tone={state.vitals.hr > 115 ? "danger" : "neutral"} />
+                  <VitalPill label="FR" value={`${state.vitals.rr}/min`} tone={state.vitals.rr >= 28 ? "danger" : "neutral"} />
+                  <VitalPill label="SpO₂" value={`${state.vitals.spo2}%`} tone={state.vitals.spo2 <= 92 ? "danger" : "neutral"} />
+                  <VitalPill label="TEMP" value={`${state.vitals.temperature.toFixed(1)} °C`} tone={state.vitals.temperature >= 39 ? "warning" : "neutral"} />
+                  <VitalPill label="TA" value={state.vitals.bp} tone="neutral" />
+                </div>
+              </div>
+            </div>
+
+            <div className="patientStage__body">
+              <PatientIllustration state={state} />
+            </div>
           </div>
 
           <div className="currentStateStrip">
