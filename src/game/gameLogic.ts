@@ -32,6 +32,7 @@ export interface Flags {
   isolated: boolean;
   ppe: boolean;
   infectionControlWindowMet: boolean;
+  turn2AntibioticApplied: boolean;
   publicHealthNotified: boolean;
   contactsIdentified: boolean;
   admittedWard: boolean;
@@ -204,6 +205,7 @@ export const createInitialState = (): GameState => ({
     isolated: false,
     ppe: false,
     infectionControlWindowMet: false,
+    turn2AntibioticApplied: false,
     publicHealthNotified: false,
     contactsIdentified: false,
     admittedWard: false,
@@ -604,6 +606,11 @@ const applyTurnPressure = (state: GameState) => {
   }
 
   if (turn === 2) {
+    if (!next.flags.turn2AntibioticApplied) {
+      stats.complications = clamp(stats.complications + 2, 0, MAX_COMPLICATIONS);
+      next.flags.turn2AntibioticApplied = true;
+      addLog(next, "El residente junior pauta amoxicilina y el caso suma dos complicaciones de entrada.");
+    }
     if (!next.flags.publicHealthNotified) {
       hidden.outbreakRisk = clamp(hidden.outbreakRisk + 1, 0, 4);
     }

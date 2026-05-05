@@ -51,18 +51,38 @@ const supportOptions: Array<{ key: SupportKey; label: string; help: string }> = 
 
 const initialState = createInitialState();
 
-const normalizeGameState = (saved: GameState): GameState => ({
-  ...initialState,
-  ...saved,
-  stats: { ...initialState.stats, ...saved.stats },
-  vitals: { ...initialState.vitals, ...saved.vitals },
-  hidden: { ...initialState.hidden, ...saved.hidden },
-  flags: { ...initialState.flags, ...saved.flags },
-  eventLog: saved.eventLog ?? [],
-  selectedDoseMg: saved.selectedMedication ? saved.selectedDoseMg : "0",
-  narrative: saved.narrative ?? initialState.narrative,
-  outcome: saved.outcome ?? null,
-});
+const normalizeGameState = (saved: GameState): GameState => {
+  const migratedStats =
+    saved.turnIndex >= 2 && !saved.flags?.turn2AntibioticApplied
+      ? {
+          ...initialState.stats,
+          ...saved.stats,
+          complications: Math.max(saved.stats?.complications ?? 0, 2),
+        }
+      : { ...initialState.stats, ...saved.stats };
+
+  const migratedFlags =
+    saved.turnIndex >= 2 && !saved.flags?.turn2AntibioticApplied
+      ? {
+          ...initialState.flags,
+          ...saved.flags,
+          turn2AntibioticApplied: true,
+        }
+      : { ...initialState.flags, ...saved.flags };
+
+  return {
+    ...initialState,
+    ...saved,
+    stats: migratedStats,
+    vitals: { ...initialState.vitals, ...saved.vitals },
+    hidden: { ...initialState.hidden, ...saved.hidden },
+    flags: migratedFlags,
+    eventLog: saved.eventLog ?? [],
+    selectedDoseMg: saved.selectedMedication ? saved.selectedDoseMg : "0",
+    narrative: saved.narrative ?? initialState.narrative,
+    outcome: saved.outcome ?? null,
+  };
+};
 
 const tapFeedback = {
   whileTap: { scale: 0.985 },
