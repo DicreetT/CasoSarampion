@@ -8,7 +8,9 @@ import {
   getTurn,
   turns,
   type ActionKey,
+  type AdministrationRoute,
   type GameState,
+  type DoseScheduleMode,
   type MedicationKey,
   type VisualState,
   type SupportKey,
@@ -27,7 +29,18 @@ const medicationOptions: Array<{ key: MedicationKey; label: string; help: string
   { key: "ceftriaxona", label: "Ceftriaxona", help: "Cobertura parenteral selectiva" },
   { key: "corticoides", label: "Corticoides", help: "No a ciegas" },
   { key: "vitaminaA", label: "Vitamina A", help: "Apoyo en casos seleccionados" },
-  { key: "benzodiacepina", label: "Benzodiacepina", help: "Crisis convulsiva / encefalitis" },
+  { key: "benzodiacepina", label: "Lorazepam", help: "Crisis convulsiva / encefalitis" },
+];
+
+const doseModeOptions: Array<{ key: DoseScheduleMode; label: string; help: string }> = [
+  { key: "interval", label: "Horas", help: "Pauta repetida" },
+  { key: "single", label: "Dosis única", help: "Solo una administración" },
+];
+
+const administrationRouteOptions: Array<{ key: AdministrationRoute; label: string; help: string }> = [
+  { key: "oral", label: "Oral", help: "Vía digestiva" },
+  { key: "iv", label: "IV", help: "Acceso intravenoso" },
+  { key: "intramuscular", label: "Intramuscular", help: "Vía IM" },
 ];
 
 const actionOptions: Array<{ key: ActionKey; label: string; help: string }> = [
@@ -53,6 +66,9 @@ const supportOptions: Array<{ key: SupportKey; label: string; help: string }> = 
 const medicationLabelByKey = new Map(medicationOptions.map((option) => [option.key, option.label]));
 const actionLabelByKey = new Map(actionOptions.map((option) => [option.key, option.label]));
 const supportLabelByKey = new Map(supportOptions.map((option) => [option.key, option.label]));
+const doseModeLabelByKey = new Map(doseModeOptions.map((option) => [option.key, option.label]));
+const routeLabelByKey = new Map(administrationRouteOptions.map((option) => [option.key, option.label]));
+type MedicationChoice = Extract<TurnChoice, { kind: "medication" }>;
 
 const initialState = createInitialState();
 
@@ -113,6 +129,10 @@ const normalizeGameState = (saved: GameState): GameState => {
     eventLog: saved.eventLog ?? [],
     selectedDoseMg: saved.selectedMedication ? saved.selectedDoseMg : "0",
     selectedDoseEveryHours: saved.selectedMedication ? saved.selectedDoseEveryHours ?? initialState.selectedDoseEveryHours : initialState.selectedDoseEveryHours,
+    selectedDoseMode: saved.selectedMedication ? saved.selectedDoseMode ?? initialState.selectedDoseMode : initialState.selectedDoseMode,
+    selectedAdministrationRoute: saved.selectedMedication
+      ? saved.selectedAdministrationRoute ?? initialState.selectedAdministrationRoute
+      : initialState.selectedAdministrationRoute,
     narrative: saved.narrative ?? initialState.narrative,
     outcome: saved.outcome ?? null,
   };
@@ -175,8 +195,14 @@ const choiceId = (choice: TurnChoice) => `${choice.kind}:${choice.key}`;
 const choiceLabel = (choice: TurnChoice) => {
   if (choice.kind === "medication") {
     const label = medicationLabelByKey.get(choice.key) ?? choice.key;
-    const interval = choice.everyHours && Number.parseFloat(choice.everyHours) > 0 ? ` c/${choice.everyHours}h` : "";
-    return `${label} ${choice.doseMg}mg${interval}`;
+    const interval =
+      choice.doseMode === "single"
+        ? "dosis única"
+        : choice.everyHours && Number.parseFloat(choice.everyHours) > 0
+          ? `c/${choice.everyHours}h`
+          : "sin intervalo";
+    const route = routeLabelByKey.get(choice.route) ?? choice.route;
+    return `${label} ${choice.doseMg}mg · ${interval} · ${route}`;
   }
 
   if (choice.kind === "suspension") {
@@ -190,6 +216,26 @@ const choiceLabel = (choice: TurnChoice) => {
 
   return supportLabelByKey.get(choice.key) ?? choice.key;
 };
+
+const buildMedicationChoice = (state: GameState, key: MedicationKey): MedicationChoice => ({
+  kind: "medication",
+  key,
+  doseMg: state.selectedDoseMg,
+  everyHours: state.selectedDoseMode === "single" ? "" : state.selectedDoseEveryHours,
+  doseMode: state.selectedDoseMode,
+  route: state.selectedAdministrationRoute,
+});
+
+const syncMedicationChoice = (
+  choice: MedicationChoice,
+  state: GameState,
+): MedicationChoice => ({
+  ...choice,
+  doseMg: state.selectedDoseMg,
+  everyHours: state.selectedDoseMode === "single" ? "" : state.selectedDoseEveryHours,
+  doseMode: state.selectedDoseMode,
+  route: state.selectedAdministrationRoute,
+});
 
 const PatientIllustration = ({ state }: { state: GameState }) => {
   const svgState = state.visualState;
@@ -326,15 +372,19 @@ export default function App() {
     choices.filter((item) => item.kind !== "suspension" && !(item.kind === "action" && item.key === "suspender"));
 
   const updateMedicationChoice = (key: MedicationKey) => {
+    const medicationPreview = getActionOutcomePreview({
+      kind: "medication",
+      key,
+      doseMg: state.selectedDoseMg,
+      everyHours: state.selectedDoseMode === "single" ? "" : state.selectedDoseEveryHours,
+      doseMode: state.selectedDoseMode,
+      route: state.selectedAdministrationRoute,
+    });
+
     setSelectedChoices((current) => {
       const suspensionIndex = current.findIndex((item) => item.kind === "suspension");
       const existingMedicationIndex = current.findIndex((item) => item.kind === "medication");
-      const updatedMedicationChoice: TurnChoice = {
-        kind: "medication",
-        key,
-        doseMg: state.selectedDoseMg,
-        everyHours: state.selectedDoseEveryHours,
-      };
+      const updatedMedicationChoice = buildMedicationChoice(state, key);
       const updatedSuspensionChoice: TurnChoice = { kind: "suspension", key };
 
       if (suspenderMode) {
@@ -364,14 +414,7 @@ export default function App() {
       if (existingMedicationIndex >= 0) {
         const updated = [...current];
         updated[existingMedicationIndex] = updatedMedicationChoice;
-        setPreviewText(
-          getActionOutcomePreview({
-            kind: "medication",
-            key,
-            doseMg: state.selectedDoseMg,
-            everyHours: state.selectedDoseEveryHours,
-          }),
-        );
+        setPreviewText(medicationPreview);
         return updated;
       }
 
@@ -380,19 +423,66 @@ export default function App() {
         return current;
       }
 
-      setPreviewText(
-        getActionOutcomePreview({
-          kind: "medication",
-          key,
-          doseMg: state.selectedDoseMg,
-          everyHours: state.selectedDoseEveryHours,
-        }),
-      );
+      setPreviewText(medicationPreview);
       return [...current, updatedMedicationChoice];
     });
     if (!suspenderMode) {
       setState((current) => ({ ...current, selectedMedication: key }));
     }
+  };
+
+  const setDoseMode = (mode: DoseScheduleMode) => {
+    setState((current) => {
+      const next = {
+        ...current,
+        selectedDoseMode: mode,
+      };
+
+      if (current.selectedMedication) {
+        setSelectedChoices((choices) =>
+          choices.map((choice) => (choice.kind === "medication" ? syncMedicationChoice(choice, next) : choice)),
+        );
+        setPreviewText(
+          getActionOutcomePreview({
+            kind: "medication",
+            key: current.selectedMedication,
+            doseMg: current.selectedDoseMg,
+            everyHours: mode === "single" ? "" : current.selectedDoseEveryHours,
+            doseMode: mode,
+            route: current.selectedAdministrationRoute,
+          }),
+        );
+      }
+
+      return next;
+    });
+  };
+
+  const setAdministrationRoute = (route: AdministrationRoute) => {
+    setState((current) => {
+      const next = {
+        ...current,
+        selectedAdministrationRoute: route,
+      };
+
+      if (current.selectedMedication) {
+        setSelectedChoices((choices) =>
+          choices.map((choice) => (choice.kind === "medication" ? syncMedicationChoice(choice, next) : choice)),
+        );
+        setPreviewText(
+          getActionOutcomePreview({
+            kind: "medication",
+            key: current.selectedMedication,
+            doseMg: current.selectedDoseMg,
+            everyHours: current.selectedDoseMode === "single" ? "" : current.selectedDoseEveryHours,
+            doseMode: current.selectedDoseMode,
+            route,
+          }),
+        );
+      }
+
+      return next;
+    });
   };
 
   const toggleActionChoice = (key: ActionKey) => {
@@ -411,7 +501,9 @@ export default function App() {
                       kind: "medication",
                       key: updated[updated.length - 1].key,
                       doseMg: state.selectedDoseMg,
-                      everyHours: state.selectedDoseEveryHours,
+                      everyHours: state.selectedDoseMode === "single" ? "" : state.selectedDoseEveryHours,
+                      doseMode: state.selectedDoseMode,
+                      route: state.selectedAdministrationRoute,
                     }
                   : updated[updated.length - 1].kind === "action"
                     ? { kind: "action", key: updated[updated.length - 1].key }
@@ -474,7 +566,9 @@ export default function App() {
             ? {
                 ...choice,
                 doseMg: state.selectedDoseMg,
-                everyHours: state.selectedDoseEveryHours,
+                everyHours: state.selectedDoseMode === "single" ? "" : state.selectedDoseEveryHours,
+                doseMode: state.selectedDoseMode,
+                route: state.selectedAdministrationRoute,
               }
             : choice,
       ),
@@ -486,6 +580,8 @@ export default function App() {
       selectedMedication: null,
       selectedDoseMg: "0",
       selectedDoseEveryHours: initialState.selectedDoseEveryHours,
+      selectedDoseMode: initialState.selectedDoseMode,
+      selectedAdministrationRoute: initialState.selectedAdministrationRoute,
     });
     setSelectedChoices([]);
     setPreviewText(next.narrative);
@@ -654,12 +750,7 @@ export default function App() {
                   className={`pocketItem ${
                     (suspenderMode && hasChoice({ kind: "suspension", key: med.key })) ||
                     (!suspenderMode &&
-                      hasChoice({
-                        kind: "medication",
-                        key: med.key,
-                        doseMg: state.selectedDoseMg,
-                        everyHours: state.selectedDoseEveryHours,
-                      }))
+                      hasChoice(buildMedicationChoice(state, med.key)))
                       ? "active"
                       : ""
                   }`}
@@ -694,7 +785,9 @@ export default function App() {
                             ? {
                                 ...choice,
                                 doseMg: dose,
-                                everyHours: state.selectedDoseEveryHours,
+                                everyHours: state.selectedDoseMode === "single" ? "" : state.selectedDoseEveryHours,
+                                doseMode: state.selectedDoseMode,
+                                route: state.selectedAdministrationRoute,
                               }
                             : choice,
                         ),
@@ -706,7 +799,9 @@ export default function App() {
                             kind: "medication",
                             key: state.selectedMedication,
                             doseMg: dose,
-                            everyHours: state.selectedDoseEveryHours,
+                            everyHours: state.selectedDoseMode === "single" ? "" : state.selectedDoseEveryHours,
+                            doseMode: state.selectedDoseMode,
+                            route: state.selectedAdministrationRoute,
                           }),
                         );
                       }
@@ -715,48 +810,96 @@ export default function App() {
                 />
               </label>
 
-              <label className="doseControl">
-                <span>Cada cuántas horas</span>
-                <input
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={state.selectedDoseEveryHours}
-                  readOnly={suspenderMode}
-                  onChange={(event) => {
-                    const everyHours = event.target.value;
-                    setState((current) => ({
-                      ...current,
-                      selectedDoseEveryHours: everyHours,
-                    }));
+              <div className="controlGroup">
+                <span className="controlGroup__label">Pauta</span>
+                <div className="toggleRow">
+                  {doseModeOptions.map((option) => (
+                    <motion.button
+                      key={option.key}
+                      type="button"
+                      className={`toggleButton ${state.selectedDoseMode === option.key ? "active" : ""}`}
+                      onClick={() => {
+                        if (!suspenderMode) setDoseMode(option.key);
+                      }}
+                      disabled={suspenderMode}
+                      {...tapFeedback}
+                    >
+                      <strong>{option.label}</strong>
+                      <small>{option.help}</small>
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
 
-                    if (!suspenderMode) {
-                      setSelectedChoices((current) =>
-                        current.map((choice) =>
-                          choice.kind === "medication"
-                            ? {
-                                ...choice,
-                                doseMg: state.selectedDoseMg,
-                                everyHours,
-                              }
-                            : choice,
-                        ),
-                      );
+              {state.selectedDoseMode !== "single" && (
+                <label className="doseControl">
+                  <span>Cada cuántas horas</span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={state.selectedDoseEveryHours}
+                    readOnly={suspenderMode}
+                    onChange={(event) => {
+                      const everyHours = event.target.value;
+                      setState((current) => ({
+                        ...current,
+                        selectedDoseEveryHours: everyHours,
+                      }));
 
-                      if (state.selectedMedication) {
-                        setPreviewText(
-                          getActionOutcomePreview({
-                            kind: "medication",
-                            key: state.selectedMedication,
-                            doseMg: state.selectedDoseMg,
-                            everyHours,
-                          }),
+                      if (!suspenderMode) {
+                        setSelectedChoices((current) =>
+                          current.map((choice) =>
+                            choice.kind === "medication"
+                              ? {
+                                  ...choice,
+                                  doseMg: state.selectedDoseMg,
+                                  everyHours,
+                                  doseMode: state.selectedDoseMode,
+                                  route: state.selectedAdministrationRoute,
+                                }
+                              : choice,
+                          ),
                         );
+
+                        if (state.selectedMedication) {
+                          setPreviewText(
+                            getActionOutcomePreview({
+                              kind: "medication",
+                              key: state.selectedMedication,
+                              doseMg: state.selectedDoseMg,
+                              everyHours,
+                              doseMode: state.selectedDoseMode,
+                              route: state.selectedAdministrationRoute,
+                            }),
+                          );
+                        }
                       }
-                    }
-                  }}
-                />
-              </label>
+                    }}
+                  />
+                </label>
+              )}
+
+              <div className="controlGroup">
+                <span className="controlGroup__label">Vía de administración</span>
+                <div className="toggleRow toggleRow--routes">
+                  {administrationRouteOptions.map((option) => (
+                    <motion.button
+                      key={option.key}
+                      type="button"
+                      className={`toggleButton ${state.selectedAdministrationRoute === option.key ? "active" : ""}`}
+                      onClick={() => {
+                        if (!suspenderMode) setAdministrationRoute(option.key);
+                      }}
+                      disabled={suspenderMode}
+                      {...tapFeedback}
+                    >
+                      <strong>{option.label}</strong>
+                      <small>{option.help}</small>
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
             </article>
 
             <article className="pocketColumn pocketColumn--actions">

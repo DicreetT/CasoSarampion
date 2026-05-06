@@ -56,6 +56,8 @@ export interface GameState {
   selectedMedication: MedicationKey | null;
   selectedDoseMg: string;
   selectedDoseEveryHours: string;
+  selectedDoseMode: DoseScheduleMode;
+  selectedAdministrationRoute: AdministrationRoute;
   narrative: string;
   eventLog: string[];
   flags: Flags;
@@ -83,6 +85,10 @@ export type MedicationKey =
   | "vitaminaA"
   | "benzodiacepina";
 
+export type DoseScheduleMode = "interval" | "single";
+
+export type AdministrationRoute = "oral" | "iv" | "intramuscular";
+
 export type ActionKey =
   | "aislamiento"
   | "epis"
@@ -102,7 +108,14 @@ export type SupportKey =
   | "dieta";
 
 export type TurnChoice =
-  | { kind: "medication"; key: MedicationKey; doseMg: string; everyHours: string }
+  | {
+      kind: "medication";
+      key: MedicationKey;
+      doseMg: string;
+      everyHours: string;
+      doseMode: DoseScheduleMode;
+      route: AdministrationRoute;
+    }
   | { kind: "action"; key: ActionKey }
   | { kind: "suspension"; key: MedicationKey }
   | { kind: "support"; key: SupportKey };
@@ -209,6 +222,8 @@ export const createInitialState = (): GameState => ({
   selectedMedication: null,
   selectedDoseMg: "0",
   selectedDoseEveryHours: "8",
+  selectedDoseMode: "interval",
+  selectedAdministrationRoute: "oral",
   narrative:
     "Un paciente joven entra con un cuadro compatible con sarampión. El caso avanza por turnos y cada decisión modifica su evolución personal.",
   eventLog: [],
@@ -777,6 +792,8 @@ const applySingleChoice = (state: GameState, choice: TurnChoice) => {
     next.selectedMedication = choice.key;
     next.selectedDoseMg = choice.doseMg;
     next.selectedDoseEveryHours = choice.everyHours;
+    next.selectedDoseMode = choice.doseMode;
+    next.selectedAdministrationRoute = choice.route;
     next = applyMedication(next, normalizeDose(choice.doseMg));
   }
 
@@ -854,23 +871,35 @@ export const getActionOutcomePreview = (choice: {
   key: string;
   doseMg?: string;
   everyHours?: string;
+  doseMode?: DoseScheduleMode;
+  route?: AdministrationRoute;
 }) => {
   if (choice.kind === "medication") {
     const interval = normalizeInterval(choice.everyHours ?? "0");
-    const intervalText = interval > 0 ? `c/${interval}h` : "sin intervalo claro";
+    const routeText =
+      choice.route === "iv"
+        ? "IV"
+        : choice.route === "intramuscular"
+          ? "intramuscular"
+          : "oral";
+    const scheduleText = choice.doseMode === "single"
+      ? "dosis única"
+      : interval > 0
+        ? `c/${interval}h`
+        : "sin intervalo claro";
 
     if (choice.key === "paracetamol") {
       const dose = normalizeDose(choice.doseMg ?? "0");
-      if (dose >= 500 && dose <= 1000) return `Una pauta prudente ${intervalText} puede bajar la fiebre sin sumar ruido.`;
+      if (dose >= 500 && dose <= 1000) return `Una pauta prudente ${scheduleText} por vía ${routeText} puede bajar la fiebre sin sumar ruido.`;
       if (dose > 0) return "Fuera de rango, suma complicaciones y no controla bien la fiebre.";
       return "El efecto antitérmico será modesto.";
     }
 
-    if (choice.key === "amoxicilina") return `Su uso aquí suele hablar más de incertidumbre que de precisión clínica, incluso con pauta ${intervalText}.`;
-    if (choice.key === "ceftriaxona") return `Solo gana valor si sospechas una complicación bacteriana concreta y una pauta ${intervalText} tiene sentido.`;
-    if (choice.key === "corticoides") return `Sin indicación clara, el riesgo pesa más que el beneficio, aunque se pautaran ${intervalText}.`;
-    if (choice.key === "vitaminaA") return `Puede ayudar en casos seleccionados, pero no sustituye el manejo integral ni la pauta ${intervalText}.`;
-    if (choice.key === "benzodiacepina") return `En la crisis convulsiva adecuada, sí cambia el escenario; fuera de ella, la pauta ${intervalText} no arregla gran cosa.`;
+    if (choice.key === "amoxicilina") return `Su uso aquí suele hablar más de incertidumbre que de precisión clínica, incluso con pauta ${scheduleText} por vía ${routeText}.`;
+    if (choice.key === "ceftriaxona") return `Solo gana valor si sospechas una complicación bacteriana concreta y una pauta ${scheduleText} por vía ${routeText} tiene sentido.`;
+    if (choice.key === "corticoides") return `Sin indicación clara, el riesgo pesa más que el beneficio, aunque se pautaran ${scheduleText} por vía ${routeText}.`;
+    if (choice.key === "vitaminaA") return `Puede ayudar en casos seleccionados, pero no sustituye el manejo integral ni la pauta ${scheduleText} por vía ${routeText}.`;
+    if (choice.key === "benzodiacepina") return `En la crisis convulsiva adecuada, sí cambia el escenario; fuera de ella, la pauta ${scheduleText} por vía ${routeText} no arregla gran cosa.`;
   }
 
   if (choice.kind === "action") {
