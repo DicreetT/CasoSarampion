@@ -171,19 +171,28 @@ const clamp = (value: number, min: number, max: number) =>
 const MAX_FEVER = 3;
 const MAX_COMPLICATIONS = 3;
 
-const applyThresholdPenalties = (previousStats: Stats, stats: Stats) => {
+const applyThresholdPenalties = (previousStats: Stats, stats: Stats, turnIndex?: number) => {
   const nextStats = { ...stats };
   const messages: string[] = [];
+  const preventLifeLoss = typeof turnIndex === "number" && turnIndex >= 6;
 
   if (previousStats.fever < MAX_FEVER && nextStats.fever >= MAX_FEVER) {
-    nextStats.life = clamp(nextStats.life - 1, 0, 4);
     nextStats.complications = clamp(nextStats.complications + 2, 0, MAX_COMPLICATIONS);
-    messages.push("La fiebre llena su barra y arrastra más complicaciones.");
+    if (!preventLifeLoss) {
+      nextStats.life = clamp(nextStats.life - 1, 0, 4);
+      messages.push("La fiebre llena su barra y arrastra más complicaciones.");
+    } else {
+      messages.push("La fiebre llena su barra, pero en el cierre ya no compromete la vida.");
+    }
   }
 
   if (previousStats.complications < MAX_COMPLICATIONS && nextStats.complications >= MAX_COMPLICATIONS) {
-    nextStats.life = clamp(nextStats.life - 1, 0, 4);
-    messages.push("Las complicaciones llenan su barra y pasan factura.");
+    if (!preventLifeLoss) {
+      nextStats.life = clamp(nextStats.life - 1, 0, 4);
+      messages.push("Las complicaciones llenan su barra y pasan factura.");
+    } else {
+      messages.push("Las complicaciones llenan su barra, pero el cierre ya no resta vida.");
+    }
   }
 
   return { stats: nextStats, messages };
@@ -446,13 +455,17 @@ const applyMedication = (state: GameState, doseMg: number) => {
     }
     case "benzodiacepina": {
       if (turn === 5) {
-        if (doseMg > 0) {
+        const correctDose = doseMg >= 3 && doseMg <= 4;
+        const correctSingleDose = next.selectedDoseMode === "single";
+        const correctRoute = next.selectedAdministrationRoute === "iv";
+
+        if (correctDose && correctSingleDose && correctRoute) {
           stats.complications = clamp(stats.complications - 1, 0, MAX_COMPLICATIONS);
-          narrative = "La crisis cede con un manejo rápido y el paciente deja de luchar tanto contra su propio sistema nervioso.";
+          narrative = "El lorazepam en dosis única IV y 3-4 mg encaja con la crisis y reduce la carga clínica.";
           next.flags.improvedAtLeastOnce = true;
         } else {
           stats.complications = clamp(stats.complications + 1, 0, MAX_COMPLICATIONS);
-          narrative = "Pautar benzodiacepina sin una dosis útil no controla la crisis.";
+          narrative = "La benzodiacepina fuera de la pauta correcta suma complicaciones.";
         }
       } else {
         stats.complications = clamp(stats.complications + 1, 0, MAX_COMPLICATIONS);
@@ -464,7 +477,7 @@ const applyMedication = (state: GameState, doseMg: number) => {
       narrative = "No hay un fármaco activo seleccionado.";
   }
 
-  const threshold = applyThresholdPenalties(previousStats, stats);
+  const threshold = applyThresholdPenalties(previousStats, stats, turn);
   stats = threshold.stats;
   narrative = [narrative, ...threshold.messages].filter(Boolean).join(" ");
 
@@ -478,6 +491,7 @@ const applySuspension = (state: GameState, medication: MedicationKey) => {
   const next = { ...state };
   const previousStats = { ...next.stats };
   let stats = { ...next.stats };
+  const turn = getTurn(state).id;
   let narrative = "";
 
   switch (medication) {
@@ -510,7 +524,7 @@ const applySuspension = (state: GameState, medication: MedicationKey) => {
       narrative = "La medicación suspendida no cambia mucho el caso.";
   }
 
-  const threshold = applyThresholdPenalties(previousStats, stats);
+  const threshold = applyThresholdPenalties(previousStats, stats, turn);
   stats = threshold.stats;
   narrative = [narrative, ...threshold.messages].filter(Boolean).join(" ");
 
@@ -595,7 +609,7 @@ const applyAction = (state: GameState, action: ActionKey) => {
       break;
   }
 
-  const threshold = applyThresholdPenalties(previousStats, stats);
+  const threshold = applyThresholdPenalties(previousStats, stats, turn);
   stats = threshold.stats;
   narrative = [narrative, ...threshold.messages].filter(Boolean).join(" ");
 
@@ -610,6 +624,7 @@ const applySupport = (state: GameState, support: SupportKey) => {
   const previousStats = { ...next.stats };
   let stats = { ...next.stats };
   const vitals = { ...next.vitals };
+  const turn = getTurn(state).id;
   let narrative = "";
 
   switch (support) {
@@ -644,7 +659,7 @@ const applySupport = (state: GameState, support: SupportKey) => {
       break;
   }
 
-  const threshold = applyThresholdPenalties(previousStats, stats);
+  const threshold = applyThresholdPenalties(previousStats, stats, turn);
   stats = threshold.stats;
   narrative = [narrative, ...threshold.messages].filter(Boolean).join(" ");
 
@@ -721,7 +736,7 @@ const applyTurnPressure = (state: GameState) => {
     }
   }
 
-  const threshold = applyThresholdPenalties(previousStats, stats);
+  const threshold = applyThresholdPenalties(previousStats, stats, turn);
   stats = threshold.stats;
 
   next.stats = stats;
@@ -767,7 +782,7 @@ export const advanceTurn = (state: GameState) => {
     entryMessages.push("Los corticoides siguen activos y suman complicaciones turno a turno.");
   }
 
-  const entryThreshold = applyThresholdPenalties(entryPreviousStats, progressed.stats);
+  const entryThreshold = applyThresholdPenalties(entryPreviousStats, progressed.stats, progressed.turnIndex);
   progressed.stats = entryThreshold.stats;
   entryMessages.push(...entryThreshold.messages);
 
