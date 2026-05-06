@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { supabase } from "./lib/supabase";
 import {
   applyChoices,
   createInitialState,
@@ -322,6 +323,19 @@ export default function App() {
   useEffect(() => {
     saveTurnHistory(turnHistory);
   }, [turnHistory]);
+
+  useEffect(() => {
+    const testSupabaseConnection = async () => {
+      try {
+        await supabase.auth.getSession();
+        console.log("SUPABASE CONNECTED");
+      } catch (error) {
+        console.error("SUPABASE CONNECTION FAILED", error);
+      }
+    };
+
+    void testSupabaseConnection();
+  }, []);
 
   const turn = getTurn(state);
   const outcomeTone = getOutcomeTone(state.outcome);
