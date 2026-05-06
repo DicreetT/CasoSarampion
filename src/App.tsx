@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { QRCodeSVG } from "qrcode.react";
 import { supabase, hasSupabaseConfig } from "./lib/supabase";
 import {
   applyChoices,
@@ -71,7 +72,35 @@ const doseModeLabelByKey = new Map(doseModeOptions.map((option) => [option.key, 
 const routeLabelByKey = new Map(administrationRouteOptions.map((option) => [option.key, option.label]));
 type MedicationChoice = Extract<TurnChoice, { kind: "medication" }>;
 
+type HostSession = {
+  id?: string | number;
+  code: string;
+  current_turn: number;
+  status: string;
+};
+
 const initialState = createInitialState();
+
+const getSearchParam = (name: string) => {
+  if (typeof window === "undefined") return null;
+
+  return new URLSearchParams(window.location.search).get(name);
+};
+
+const generateSessionCode = () => {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = new Uint8Array(6);
+
+  if (typeof window !== "undefined" && window.crypto?.getRandomValues) {
+    window.crypto.getRandomValues(bytes);
+  } else {
+    for (let index = 0; index < bytes.length; index += 1) {
+      bytes[index] = Math.floor(Math.random() * 256);
+    }
+  }
+
+  return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
+};
 
 const normalizeGameState = (saved: GameState): GameState => {
   const clampStat = (value: number | undefined, max: number) => Math.max(0, Math.min(max, value ?? 0));
@@ -301,7 +330,135 @@ const PatientIllustration = ({ state }: { state: GameState }) => {
   );
 };
 
-export default function App() {
+const HostLobby = () => {
+  const [session, setSession] = useState<HostSession | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const playerUrl =
+    typeof window === "undefined" || !session
+      ? ""
+      : `${window.location.origin}/CasoSarampion/?mode=player&session=${session.code}`;
+
+  const createSession = async () => {
+    if (!hasSupabaseConfig || !supabase) {
+      setError("Supabase no está configurado para crear sesiones.");
+      return;
+    }
+
+    setCreating(true);
+    setError(null);
+
+    const code = generateSessionCode();
+    const payload = {
+      code,
+      current_turn: 0,
+      status: "lobby",
+    };
+
+    try {
+      const { data, error: insertError } = await supabase
+        .from("game_sessions")
+        .insert(payload)
+        .select()
+        .single();
+
+      if (insertError) {
+        throw insertError;
+      }
+
+      setSession((data ?? payload) as HostSession);
+    } catch (insertError) {
+      const message =
+        insertError instanceof Error ? insertError.message : "No se pudo crear la sesión.";
+      setError(message);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return (
+    <motion.div
+      className="appShell hostShell"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+    >
+      <div className="backgroundGrid" />
+      <main className="hostFrame">
+        <motion.section
+          className="hostCard"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="hostCard__header">
+            <span className="hostBadge">Host mode</span>
+            <h1>Crear sesión clínica</h1>
+            <p>
+              Genera un código y comparte el QR para que el grupo entre como jugador desde su móvil.
+            </p>
+          </div>
+
+          <div className="hostCard__actions">
+            <motion.button
+              type="button"
+              className="hostButton"
+              onClick={createSession}
+              disabled={creating}
+              whileTap={{ scale: 0.985 }}
+              whileHover={{ y: -2 }}
+              transition={{ duration: 0.18 }}
+            >
+              {creating ? "Creando sesión..." : "Crear sesión"}
+            </motion.button>
+          </div>
+
+          {error && <div className="hostError">{error}</div>}
+
+          <div className="hostDetails">
+            <div className="hostDetail">
+              <span>Estado</span>
+              <strong>{session ? session.status : "Sin sesión"}</strong>
+            </div>
+            <div className="hostDetail">
+              <span>Turno</span>
+              <strong>{session ? session.current_turn : 0}</strong>
+            </div>
+          </div>
+
+          {session ? (
+            <div className="hostSessionPanel">
+              <div className="hostSessionCode">
+                <span>Código de sesión</span>
+                <strong>{session.code}</strong>
+              </div>
+
+              <div className="hostQrBlock">
+                <div className="hostQr">
+                  <QRCodeSVG value={playerUrl} size={232} includeMargin bgColor="#061018" fgColor="#d9ffe8" />
+                </div>
+                <div className="hostQrMeta">
+                  <span>Jugador</span>
+                  <code>{playerUrl}</code>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="hostEmpty">
+              <strong>Aún no has creado ninguna sesión.</strong>
+              <p>Al crearla aparecerá aquí el código y el QR para el equipo.</p>
+            </div>
+          )}
+
+          <p className="hostHint">
+            La URL del jugador se genera como <code>?mode=player&session=CODIGO</code>.
+          </p>
+        </motion.section>
+      </main>
+    </motion.div>
+  );
+};
+
+function GameModeApp() {
   const [state, setState] = useState<GameState>(() => {
     const saved = loadSavedGameState();
     if (!saved) return initialState;
@@ -994,4 +1151,14 @@ export default function App() {
       </main>
     </motion.div>
   );
+}
+
+export default function App() {
+  const mode = getSearchParam("mode");
+
+  if (mode === "host") {
+    return <HostLobby />;
+  }
+
+  return <GameModeApp />;
 }

@@ -2439,3 +2439,269 @@ h1 {
     transform: scale(1.012);
   }
 }
+
+.hostShell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at top, rgba(34, 197, 94, 0.16), transparent 40%),
+    radial-gradient(circle at bottom, rgba(14, 165, 233, 0.14), transparent 42%),
+    linear-gradient(180deg, #041015 0%, #02070b 100%);
+}
+
+.hostShell .backgroundGrid {
+  opacity: 0.34;
+}
+
+.hostFrame {
+  position: relative;
+  width: min(1120px, 100%);
+  padding: 20px;
+}
+
+.hostCard {
+  position: relative;
+  overflow: hidden;
+  padding: 28px;
+  border-radius: 32px;
+  border: 1px solid rgba(45, 212, 191, 0.22);
+  background: linear-gradient(180deg, rgba(5, 17, 22, 0.94), rgba(3, 10, 14, 0.98));
+  box-shadow:
+    0 24px 90px rgba(0, 0, 0, 0.48),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.hostCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top right, rgba(34, 211, 238, 0.12), transparent 28%),
+    radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.1), transparent 32%);
+  pointer-events: none;
+}
+
+.hostCard > * {
+  position: relative;
+  z-index: 1;
+}
+
+.hostCard__header {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.hostBadge {
+  justify-self: start;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  background: rgba(9, 24, 18, 0.86);
+  color: var(--green-soft);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.hostCard__header h1 {
+  margin: 0;
+  font-size: clamp(2rem, 3vw, 3rem);
+  line-height: 1;
+}
+
+.hostCard__header p {
+  margin: 0;
+  max-width: 62ch;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.hostCard__actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.hostButton {
+  appearance: none;
+  border: 0;
+  border-radius: 18px;
+  padding: 16px 22px;
+  background: linear-gradient(90deg, #4ade80 0%, #22d3ee 100%);
+  color: #041015;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 18px 50px rgba(34, 211, 238, 0.24);
+}
+
+.hostButton:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.hostError {
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  background: rgba(42, 10, 10, 0.82);
+  color: #ffd7d7;
+}
+
+.hostDetails {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.hostDetail {
+  display: grid;
+  gap: 8px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(45, 212, 191, 0.16);
+  background: rgba(6, 18, 23, 0.72);
+}
+
+.hostDetail span {
+  color: var(--muted);
+  font-size: 0.88rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.hostDetail strong {
+  font-size: 1.12rem;
+}
+
+.hostSessionPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 18px;
+  align-items: center;
+}
+
+.hostSessionCode {
+  display: grid;
+  gap: 10px;
+  padding: 24px;
+  min-height: 232px;
+  border-radius: 24px;
+  border: 1px solid rgba(45, 212, 191, 0.18);
+  background: rgba(5, 17, 20, 0.82);
+}
+
+.hostSessionCode span,
+.hostQrMeta span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.hostSessionCode strong {
+  font-size: clamp(3rem, 8vw, 5rem);
+  line-height: 1;
+  letter-spacing: 0.14em;
+  color: var(--green-soft);
+}
+
+.hostQrBlock {
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+  padding: 24px;
+  border-radius: 24px;
+  border: 1px solid rgba(45, 212, 191, 0.18);
+  background: rgba(5, 17, 20, 0.82);
+}
+
+.hostQr {
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  border-radius: 24px;
+  background: #061018;
+  box-shadow: inset 0 0 0 1px rgba(217, 255, 232, 0.08);
+}
+
+.hostQrMeta {
+  width: 100%;
+  display: grid;
+  gap: 8px;
+  text-align: center;
+}
+
+.hostQrMeta code {
+  display: block;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(9, 24, 18, 0.9);
+  border: 1px solid rgba(45, 212, 191, 0.16);
+  color: var(--text);
+  font-size: 0.9rem;
+  word-break: break-all;
+}
+
+.hostEmpty {
+  margin-top: 8px;
+  padding: 22px;
+  border-radius: 22px;
+  border: 1px dashed rgba(45, 212, 191, 0.24);
+  background: rgba(5, 17, 20, 0.62);
+  color: var(--muted);
+  display: grid;
+  gap: 8px;
+}
+
+.hostEmpty strong {
+  color: var(--text);
+  font-size: 1.05rem;
+}
+
+.hostHint {
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.hostHint code {
+  color: var(--green-soft);
+}
+
+@media (max-width: 900px) {
+  .hostFrame {
+    padding: 12px;
+  }
+
+  .hostCard {
+    padding: 20px;
+  }
+
+  .hostSessionPanel {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .hostDetails {
+    grid-template-columns: 1fr;
+  }
+
+  .hostCard__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hostButton {
+    width: 100%;
+  }
+}
