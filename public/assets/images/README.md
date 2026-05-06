@@ -8,7 +8,7 @@ Expected filenames:
 - `fever.png`
 - `r1.png`
 - `dehydrated.png`
-- `respiratory.png`
+- `respiratorydistress.png`
 - `critical.png`
 - `improved.png`
 

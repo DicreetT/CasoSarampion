@@ -198,6 +198,7 @@ const PatientIllustration = ({ state }: { state: GameState }) => {
   const feverImage = `${assetBase}fever.png`;
   const r1Image = `${assetBase}r1.png`;
   const dehydratedImage = `${assetBase}dehydrated.png`;
+  const respiratoryDistressImage = `${assetBase}respiratorydistress.png`;
   const [imageSrc, setImageSrc] = useState(normalImage);
   const getPatientImage = () => {
     if (state.turnIndex === 0) return normalImage;
@@ -205,7 +206,7 @@ const PatientIllustration = ({ state }: { state: GameState }) => {
     if (state.turnIndex === 2) return r1Image;
     if (state.turnIndex === 3) return dehydratedImage;
     if (state.stats.life <= 1) return `${assetBase}critical.png`;
-    if (state.stats.complications >= 2) return `${assetBase}respiratory.png`;
+    if (state.turnIndex === 4 || state.visualState === "respiratory distress") return respiratoryDistressImage;
     if (state.stats.fever >= 3) return `${assetBase}fever.png`;
     return normalImage;
   };
@@ -218,7 +219,16 @@ const PatientIllustration = ({ state }: { state: GameState }) => {
 
   useEffect(() => {
     setImageSrc(getPatientImage());
-  }, [state.turnIndex, state.stats.life, state.stats.complications, state.stats.fever, svgState, r1Image, dehydratedImage]);
+  }, [
+    state.turnIndex,
+    state.stats.life,
+    state.stats.complications,
+    state.stats.fever,
+    state.visualState,
+    r1Image,
+    dehydratedImage,
+    respiratoryDistressImage,
+  ]);
 
   return (
     <div className="patientIllustrationFrame">
