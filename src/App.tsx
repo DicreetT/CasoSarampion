@@ -492,9 +492,12 @@ export default function App() {
   };
 
   const currentOutcome = state.outcome;
+  const assetBase = `${import.meta.env.BASE_URL}assets/images/`;
+  const outbreakFinalImage = `${assetBase}finalconbrote.png`;
   const contagionOpacity = state.flags.isolated ? 0 : Math.min(0.95, state.hidden.outbreakRisk / 4);
   const contagionActive = contagionOpacity > 0.04;
   const isFatalOutcome = currentOutcome?.id === "fallecido";
+  const isOutbreakOutcome = currentOutcome?.id === "brote_hospitalario";
   const isTerminalOutcome = state.finished && currentOutcome;
   const historyRows = [
     {
@@ -518,26 +521,40 @@ export default function App() {
     >
       <div className="backgroundGrid" />
 
-      {isTerminalOutcome && (
-        <motion.section
-          className={`finalScreen ${outcomeTone} ${isFatalOutcome ? "fatal" : "resolved"}`}
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-        >
-          <div className="finalScreen__card">
-            <span className="finalScreen__eyebrow">
-              {isFatalOutcome ? "Desenlace crítico" : "Caso finalizado"}
-            </span>
-            <h1>{currentOutcome?.title}</h1>
-            <p>{currentOutcome?.description}</p>
-            <p className="finalScreen__note">
-              {isFatalOutcome
-                ? "El paciente ha fallecido y no se puede seguir jugando."
-                : "La partida ha terminado. Cuando me pases las imágenes finales, sustituimos este cierre por la versión definitiva."}
-            </p>
-          </div>
-        </motion.section>
-      )}
+      {isTerminalOutcome &&
+        (isOutbreakOutcome ? (
+          <motion.section
+            className={`finalScreen finalScreen--image ${outcomeTone}`}
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+          >
+            <img
+              className="finalScreen__image"
+              src={outbreakFinalImage}
+              alt="Final con brote hospitalario"
+            />
+            <div className="finalScreen__shade" />
+          </motion.section>
+        ) : (
+          <motion.section
+            className={`finalScreen ${outcomeTone} ${isFatalOutcome ? "fatal" : "resolved"}`}
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+          >
+            <div className="finalScreen__card">
+              <span className="finalScreen__eyebrow">
+                {isFatalOutcome ? "Desenlace crítico" : "Caso finalizado"}
+              </span>
+              <h1>{currentOutcome?.title}</h1>
+              <p>{currentOutcome?.description}</p>
+              <p className="finalScreen__note">
+                {isFatalOutcome
+                  ? "El paciente ha fallecido y no se puede seguir jugando."
+                  : "La partida ha terminado. Cuando me pases las imágenes finales, sustituimos este cierre por la versión definitiva."}
+              </p>
+            </div>
+          </motion.section>
+        ))}
 
       <main className="simulatorFrame">
         <section className={`heroScene ${visualClass}`}>

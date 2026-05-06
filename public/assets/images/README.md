@@ -11,6 +11,7 @@ Expected filenames:
 - `respiratorydistress.png`
 - `convulsion.png`
 - `healthy.png`
+- `finalconbrote.png`
 - `critical.png`
 - `improved.png`
 
