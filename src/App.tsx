@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { supabase } from "./lib/supabase";
+import { supabase, hasSupabaseConfig } from "./lib/supabase";
 import {
   applyChoices,
   createInitialState,
@@ -325,9 +325,16 @@ export default function App() {
   }, [turnHistory]);
 
   useEffect(() => {
+    const client = supabase;
+
+    if (!hasSupabaseConfig || !client) {
+      console.warn("SUPABASE NOT CONFIGURED");
+      return;
+    }
+
     const testSupabaseConnection = async () => {
       try {
-        await supabase.auth.getSession();
+        await client.auth.getSession();
         console.log("SUPABASE CONNECTED");
       } catch (error) {
         console.error("SUPABASE CONNECTION FAILED", error);
