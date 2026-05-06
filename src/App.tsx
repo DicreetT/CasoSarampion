@@ -199,14 +199,16 @@ const PatientIllustration = ({ state }: { state: GameState }) => {
   const r1Image = `${assetBase}r1.png`;
   const dehydratedImage = `${assetBase}dehydrated.png`;
   const respiratoryDistressImage = `${assetBase}respiratorydistress.png`;
+  const convulsionImage = `${assetBase}convulsion.png`;
   const [imageSrc, setImageSrc] = useState(normalImage);
   const getPatientImage = () => {
     if (state.turnIndex === 0) return normalImage;
     if (state.turnIndex === 1) return feverImage;
     if (state.turnIndex === 2) return r1Image;
     if (state.turnIndex === 3) return dehydratedImage;
-    if (state.stats.life <= 1) return `${assetBase}critical.png`;
     if (state.turnIndex === 4 || state.visualState === "respiratory distress") return respiratoryDistressImage;
+    if (state.turnIndex === 5) return convulsionImage;
+    if (state.stats.life <= 1) return `${assetBase}critical.png`;
     if (state.stats.fever >= 3) return `${assetBase}fever.png`;
     return normalImage;
   };
@@ -228,6 +230,7 @@ const PatientIllustration = ({ state }: { state: GameState }) => {
     r1Image,
     dehydratedImage,
     respiratoryDistressImage,
+    convulsionImage,
   ]);
 
   return (

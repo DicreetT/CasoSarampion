@@ -430,10 +430,14 @@ const applyMedication = (state: GameState, doseMg: number) => {
     }
     case "benzodiacepina": {
       if (turn === 5) {
-        stats.complications = clamp(stats.complications - 2, 0, MAX_COMPLICATIONS);
-        stats.life = clamp(stats.life + 1, 0, 4);
-        narrative = "La crisis cede con un manejo rápido y el paciente deja de luchar tanto contra su propio sistema nervioso.";
-        next.flags.improvedAtLeastOnce = true;
+        if (doseMg > 0) {
+          stats.complications = clamp(stats.complications - 1, 0, MAX_COMPLICATIONS);
+          narrative = "La crisis cede con un manejo rápido y el paciente deja de luchar tanto contra su propio sistema nervioso.";
+          next.flags.improvedAtLeastOnce = true;
+        } else {
+          stats.complications = clamp(stats.complications + 1, 0, MAX_COMPLICATIONS);
+          narrative = "Pautar benzodiacepina sin una dosis útil no controla la crisis.";
+        }
       } else {
         stats.complications = clamp(stats.complications + 1, 0, MAX_COMPLICATIONS);
         narrative = "La sedación fuera de contexto clínico añade un coste innecesario.";
@@ -550,7 +554,6 @@ const applyAction = (state: GameState, action: ActionKey) => {
     case "uci":
       next.flags.admittedUci = true;
       if (turn === 5) {
-        stats.life = clamp(stats.life + 1, 0, 4);
         stats.complications = clamp(stats.complications - 1, 0, MAX_COMPLICATIONS);
         vitals.spo2 = Math.min(99, vitals.spo2 + 3);
         narrative = "La UCI llega a tiempo para la fase de mayor gravedad y estabiliza el escenario.";
@@ -606,7 +609,6 @@ const applySupport = (state: GameState, support: SupportKey) => {
       break;
     case "iv":
       stats.complications = clamp(stats.complications - 2, 0, MAX_COMPLICATIONS);
-      stats.life = clamp(stats.life + 1, 0, 4);
       vitals.bp = "116/74";
       narrative = "El suero IV corrige mejor el volumen cuando el cuadro ya pesa más.";
       next.flags.improvedAtLeastOnce = true;
