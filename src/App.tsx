@@ -200,6 +200,7 @@ const PatientIllustration = ({ state }: { state: GameState }) => {
   const dehydratedImage = `${assetBase}dehydrated.png`;
   const respiratoryDistressImage = `${assetBase}respiratorydistress.png`;
   const convulsionImage = `${assetBase}convulsion.png`;
+  const healthyImage = `${assetBase}healthy.png`;
   const [imageSrc, setImageSrc] = useState(normalImage);
   const getPatientImage = () => {
     if (state.turnIndex === 0) return normalImage;
@@ -208,6 +209,7 @@ const PatientIllustration = ({ state }: { state: GameState }) => {
     if (state.turnIndex === 3) return dehydratedImage;
     if (state.turnIndex === 4 || state.visualState === "respiratory distress") return respiratoryDistressImage;
     if (state.turnIndex === 5) return convulsionImage;
+    if (state.turnIndex === 6) return healthyImage;
     if (state.stats.life <= 1) return `${assetBase}critical.png`;
     if (state.stats.fever >= 3) return `${assetBase}fever.png`;
     return normalImage;
@@ -231,6 +233,7 @@ const PatientIllustration = ({ state }: { state: GameState }) => {
     dehydratedImage,
     respiratoryDistressImage,
     convulsionImage,
+    healthyImage,
   ]);
 
   return (
@@ -491,6 +494,8 @@ export default function App() {
   const currentOutcome = state.outcome;
   const contagionOpacity = state.flags.isolated ? 0 : Math.min(0.95, state.hidden.outbreakRisk / 4);
   const contagionActive = contagionOpacity > 0.04;
+  const isFatalOutcome = currentOutcome?.id === "fallecido";
+  const isTerminalOutcome = state.finished && currentOutcome;
   const historyRows = [
     {
       label: "Turno 0",
@@ -512,6 +517,27 @@ export default function App() {
       animate={{ opacity: 1 }}
     >
       <div className="backgroundGrid" />
+
+      {isTerminalOutcome && (
+        <motion.section
+          className={`finalScreen ${outcomeTone} ${isFatalOutcome ? "fatal" : "resolved"}`}
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+        >
+          <div className="finalScreen__card">
+            <span className="finalScreen__eyebrow">
+              {isFatalOutcome ? "Desenlace crítico" : "Caso finalizado"}
+            </span>
+            <h1>{currentOutcome?.title}</h1>
+            <p>{currentOutcome?.description}</p>
+            <p className="finalScreen__note">
+              {isFatalOutcome
+                ? "El paciente ha fallecido y no se puede seguir jugando."
+                : "La partida ha terminado. Cuando me pases las imágenes finales, sustituimos este cierre por la versión definitiva."}
+            </p>
+          </div>
+        </motion.section>
+      )}
 
       <main className="simulatorFrame">
         <section className={`heroScene ${visualClass}`}>

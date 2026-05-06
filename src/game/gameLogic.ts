@@ -12,6 +12,7 @@ export type OutcomeId =
   | "manejo_excellent"
   | "brote_hospitalario"
   | "complicacion_grave"
+  | "fallecido"
   | "manejo_incompleto";
 
 export interface Stats {
@@ -145,9 +146,9 @@ export const turns: TurnDefinition[] = [
   },
   {
     id: 6,
-    label: "Cierre administrativo y salud pública",
-    scene: "Llega la parte que nadie estudia a tiempo: notificación, contactos y cierre del caso.",
-    focus: "El riesgo oculto se revela al final, cuando ya no sirve improvisar.",
+    label: "Alta ambulatoria y cierre",
+    scene: "La mejoría permite organizar el alta ambulatoria y cerrar el circuito de contactos.",
+    focus: "El cierre final premia una evolución bien contenida y una notificación completa.",
   },
 ];
 
@@ -333,9 +334,9 @@ const setOutcome = (state: GameState): Outcome => {
 
   if (state.stats.life <= 0) {
     return {
-      id: "complicacion_grave",
-      title: "Complicación grave",
-      description: "El paciente entra en un desenlace crítico pese a la asistencia prestada.",
+      id: "fallecido",
+      title: "El paciente ha fallecido",
+      description: "El caso se detiene aquí: la descompensación superó el margen de rescate.",
     };
   }
 
@@ -716,6 +717,14 @@ const applyTurnPressure = (state: GameState) => {
 
 export const advanceTurn = (state: GameState) => {
   const afterPressure = applyTurnPressure(state);
+  if (afterPressure.stats.life <= 0) {
+    return {
+      ...afterPressure,
+      finished: true,
+      outcome: setOutcome(afterPressure),
+      visualState: getVisualState(afterPressure),
+    };
+  }
   const currentTurn = afterPressure.turnIndex;
   const nextTurn = Math.min(afterPressure.turnIndex + 1, turns.length - 1);
   const progressed: GameState = {
@@ -791,6 +800,13 @@ export const applyChoices = (state: GameState, choices: TurnChoice[]) => {
 
   for (const choice of choices) {
     next = applySingleChoice(next, choice);
+    if (next.stats.life <= 0) {
+      next.finished = true;
+      next.outcome = setOutcome(next);
+      next.visualState = getVisualState(next);
+      next.narrative = next.eventLog[next.eventLog.length - 1] ?? next.narrative;
+      return next;
+    }
   }
 
   if (state.turnIndex === 0) {
@@ -829,7 +845,7 @@ export const getPocketSummary = (tab: PocketTab) => {
 export const getOutcomeTone = (outcome: Outcome | null) => {
   if (!outcome) return "neutral";
   if (outcome.id === "manejo_excellent") return "positive";
-  if (outcome.id === "brote_hospitalario" || outcome.id === "complicacion_grave") return "danger";
+  if (outcome.id === "brote_hospitalario" || outcome.id === "complicacion_grave" || outcome.id === "fallecido") return "danger";
   return "neutral";
 };
 

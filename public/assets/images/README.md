@@ -10,6 +10,7 @@ Expected filenames:
 - `dehydrated.png`
 - `respiratorydistress.png`
 - `convulsion.png`
+- `healthy.png`
 - `critical.png`
 - `improved.png`
 
