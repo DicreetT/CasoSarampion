@@ -800,9 +800,16 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
       const { data } = await supabase!.from("game_sessions").select("*").eq("code", sessionCode).single();
       if (data) {
         setSessionPhase(data.turn_phase || "voting");
-        // Only override game_state if we are far behind or at Turn 0
         if (data.current_turn > state.turnIndex) {
           let next = { ...state };
+          while (next.turnIndex < data.current_turn && !next.finished) {
+            next = advanceTurn(next);
+          }
+          setState(next);
+        } else if (data.current_turn < state.turnIndex) {
+          // Player's local storage is from an old session that was further ahead.
+          // Reset to match the host's current state.
+          let next = normalizeGameState(data.game_state || initialState);
           while (next.turnIndex < data.current_turn && !next.finished) {
             next = advanceTurn(next);
           }
@@ -836,6 +843,16 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
                   next = advanceTurn(next);
                 }
                 setWaitingForHost(false); // Unblock for next turn
+                setSelectedChoices([]);
+                setPreviewText(next.narrative);
+                return next;
+              } else if (hostTurn < curr.turnIndex) {
+                // Host restarted the session or went backwards
+                let next = normalizeGameState(payload.new.game_state || initialState);
+                while (next.turnIndex < hostTurn && !next.finished) {
+                  next = advanceTurn(next);
+                }
+                setWaitingForHost(false);
                 setSelectedChoices([]);
                 setPreviewText(next.narrative);
                 return next;
