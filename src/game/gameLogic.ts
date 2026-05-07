@@ -860,7 +860,6 @@ export const applyChoices = (state: GameState, choices: TurnChoice[]) => {
     }
   }
 
-  next = advanceTurn(next);
   next.outcome = next.finished ? setOutcome(next) : next.outcome;
   next.visualState = getVisualState(next);
   next.narrative = next.eventLog[next.eventLog.length - 1] ?? next.narrative;

@@ -1162,7 +1162,8 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
     }
 
     // Solo Mode logic
-    const next = applyChoices(state, finalChoices);
+    const nextApplied = applyChoices(state, finalChoices);
+    const next = advanceTurn(nextApplied);
 
     setTurnHistory((current) => [...current, state]);
     setState({
@@ -1175,6 +1176,19 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
     });
     setSelectedChoices([]);
     setPreviewText(next.narrative);
+  };
+
+  const renderNarrative = (text: string) => {
+    if (!text) return null;
+    if (text.includes("pérdida de 1 punto de vida")) {
+      const parts = text.split(/(¡.*?pérdida de 1 punto de vida!)/);
+      return parts.map((part, i) => 
+        part.includes("pérdida de 1 punto de vida") ? 
+          <span key={i} style={{ color: "#ef4444", fontWeight: "bold", display: "block", marginTop: "8px", padding: "8px", background: "rgba(239, 68, 68, 0.15)", borderRadius: "8px", border: "1px solid rgba(239, 68, 68, 0.3)" }}>{part}</span> : 
+          <span key={i}>{part}</span>
+      );
+    }
+    return text;
   };
 
   const currentOutcome = state.outcome;
@@ -1353,12 +1367,15 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
 
               {(waitingForHost || sessionPhase !== "voting") && sessionPhase !== "review" && (
                 <div style={{ position: "absolute", inset: 0, background: "rgba(6, 16, 24, 0.85)", backdropFilter: "blur(4px)", zIndex: 10, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "1rem" }}>
-                  <div style={{ textAlign: "center", padding: "2rem", maxWidth: "80%" }}>
-                    <h3 style={{ color: "#fff", marginBottom: "0.5rem", fontSize: "1.5rem" }}>
+                  <div style={{ textAlign: "center", padding: "2rem", maxWidth: "90%" }}>
+                    <h3 style={{ color: "#4ade80", marginBottom: "0.5rem", fontSize: "1.5rem" }}>
                       {waitingForHost ? "Decisión enviada" : "Votaciones cerradas"}
                     </h3>
-                    <p style={{ color: "#9ca3af", fontSize: "1.1rem" }}>
-                      Esperando a que el Host pase al siguiente turno para continuar...
+                    <p style={{ color: "#d9ffe8", fontSize: "1.1rem", marginBottom: "1rem", lineHeight: "1.5" }}>
+                      {renderNarrative(previewText)}
+                    </p>
+                    <p style={{ color: "#9ca3af", fontSize: "0.95rem" }}>
+                      Tus constantes se han actualizado. Espera a que el Host pase al siguiente turno...
                     </p>
                   </div>
                 </div>

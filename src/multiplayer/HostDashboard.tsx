@@ -13,6 +13,19 @@ export const HostControls = ({ session }: { session: any }) => {
   // We parse the current game state from the session or use initial state
   const gameState: GameState = session.game_state || createInitialState();
 
+  const renderNarrative = (text: string) => {
+    if (!text) return null;
+    if (text.includes("pérdida de 1 punto de vida")) {
+      const parts = text.split(/(¡.*?pérdida de 1 punto de vida!)/);
+      return parts.map((part, i) => 
+        part.includes("pérdida de 1 punto de vida") ? 
+          <span key={i} style={{ color: "#ef4444", fontWeight: "bold", display: "block", marginTop: "8px", padding: "8px", background: "rgba(239, 68, 68, 0.15)", borderRadius: "8px", border: "1px solid rgba(239, 68, 68, 0.3)" }}>{part}</span> : 
+          <span key={i}>{part}</span>
+      );
+    }
+    return text;
+  };
+
   const topVotesInfo = useMemo(() => {
     if (!votes.length) return [];
     let allChoices: TurnChoice[] = [];
@@ -214,7 +227,7 @@ export const HostControls = ({ session }: { session: any }) => {
               <div style={{ marginTop: "0.5rem", background: "rgba(34, 211, 238, 0.1)", padding: "1rem", borderRadius: "12px", border: "1px solid rgba(34, 211, 238, 0.2)", width: "100%" }}>
                 <strong style={{ color: "#67e8f9" }}>Impacto en el paciente:</strong>
                 <p style={{ color: "#cffafe", fontSize: "1rem", marginTop: "0.5rem", lineHeight: "1.5" }}>
-                  {gameState.narrative || "Las decisiones se aplicaron sin cambios importantes."}
+                  {renderNarrative(gameState.narrative) || "Las decisiones se aplicaron sin cambios importantes."}
                 </p>
               </div>
               
