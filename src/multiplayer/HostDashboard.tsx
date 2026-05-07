@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { motion } from "framer-motion";
 import { supabase } from "../lib/supabase";
-import { applyChoices, createInitialState, type GameState, type TurnChoice } from "../game/gameLogic";
+import { applyChoices, createInitialState, advanceTurn, type GameState, type TurnChoice } from "../game/gameLogic";
 
 export const HostControls = ({ session }: { session: any }) => {
   const [players, setPlayers] = useState<any[]>([]);
@@ -129,9 +129,11 @@ export const HostControls = ({ session }: { session: any }) => {
   const nextTurn = async () => {
     setAdvancing(true);
     try {
+      const advancedState = advanceTurn(gameState);
       await supabase!.from("game_sessions").update({ 
         current_turn: session.current_turn + 1,
-        turn_phase: "voting" 
+        turn_phase: "voting",
+        game_state: advancedState
       }).eq("code", session.code);
     } finally {
       setAdvancing(false);
