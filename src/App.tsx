@@ -1285,10 +1285,10 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
           </div>
 
           <div className="patientCenter" style={{ display: "flex", flexDirection: "column", gap: "16px", padding: "16px" }}>
-            <div className="hudPanel horizontal" style={{ display: "flex", flexDirection: "row", gap: "8px", justifyContent: "space-between", background: "rgba(2, 8, 12, 0.76)", padding: "12px", borderRadius: "18px", border: "1px solid rgba(45, 212, 191, 0.22)", zIndex: 10 }}>
-              <StatBar icon="❤️" label="VIDA" value={state.stats.life} max={4} />
-              <StatBar icon="🌡️" label="FIEBRE" value={state.stats.fever} max={3} />
-              <StatBar icon="⚠️" label="COMPLIC" value={state.stats.complications} max={3} />
+            <div className="hudPanel horizontal" style={{ display: "flex", flexWrap: "wrap", flexDirection: "row", gap: "8px", justifyContent: "space-between", background: "rgba(2, 8, 12, 0.76)", padding: "12px", borderRadius: "18px", border: "1px solid rgba(45, 212, 191, 0.22)", zIndex: 10 }}>
+              <div style={{ flex: "1 1 calc(50% - 4px)", minWidth: "100px" }}><StatBar icon="❤️" label="VIDA" value={state.stats.life} max={4} /></div>
+              <div style={{ flex: "1 1 calc(50% - 4px)", minWidth: "100px" }}><StatBar icon="🌡️" label="FIEBRE" value={state.stats.fever} max={3} /></div>
+              <div style={{ flex: "1 1 100%" }}><StatBar icon="⚠️" label="COMPLIC" value={state.stats.complications} max={3} /></div>
             </div>
 
             <div className="patientStage__body" style={{ flex: 1, position: "relative", minHeight: "350px", borderRadius: "18px", overflow: "hidden", border: "1px solid rgba(123, 255, 138, 0.04)", background: "radial-gradient(circle at center, rgba(123, 255, 138, 0.1), transparent 48%), linear-gradient(180deg, rgba(5, 10, 15, 0.7), rgba(3, 7, 10, 0.82))" }}>

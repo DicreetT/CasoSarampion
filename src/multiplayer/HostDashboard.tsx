@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { motion } from "framer-motion";
 import { supabase } from "../lib/supabase";
-import { applyChoices, createInitialState, advanceTurn, type GameState, type TurnChoice } from "../game/gameLogic";
+import { applyChoices, createInitialState, advanceTurn, getTurn, type GameState, type TurnChoice } from "../game/gameLogic";
 
 export const HostControls = ({ session }: { session: any }) => {
   const [players, setPlayers] = useState<any[]>([]);
@@ -14,7 +14,7 @@ export const HostControls = ({ session }: { session: any }) => {
   const gameState: GameState = session.game_state || createInitialState();
 
   const topVotesInfo = useMemo(() => {
-    if (!votes.length) return null;
+    if (!votes.length) return [];
     let allChoices: TurnChoice[] = [];
     for (const v of votes) {
       if (v.choice_a) allChoices.push(JSON.parse(v.choice_a));
@@ -201,18 +201,31 @@ export const HostControls = ({ session }: { session: any }) => {
           {session.status !== "lobby" && session.turn_phase !== "voting" && topVotesInfo && (
             <div className="hostDetails" style={{ marginTop: "1.5rem", flexDirection: "column", alignItems: "flex-start" }}>
               <strong style={{ color: "#4ade80", marginBottom: "0.5rem" }}>Decisiones Globales Aplicadas:</strong>
-              {topVotesInfo.map((tv, idx) => (
+              {topVotesInfo.length > 0 ? topVotesInfo.map((tv, idx) => (
                  <div key={idx} style={{ background: "rgba(16, 185, 129, 0.1)", padding: "0.75rem", borderRadius: "12px", border: "1px solid rgba(16, 185, 129, 0.2)", width: "100%", marginBottom: "0.5rem" }}>
                    <span style={{ color: "#d1fae5", fontWeight: "bold" }}>{tv.choice.key.toUpperCase()}</span>
                    <span style={{ float: "right", color: "#a7f3d0" }}>{tv.count} votos</span>
                  </div>
-              ))}
+              )) : (
+                <div style={{ background: "rgba(255, 255, 255, 0.05)", padding: "0.75rem", borderRadius: "12px", width: "100%", marginBottom: "0.5rem", color: "#9ca3af" }}>
+                  No hubo votos en este turno.
+                </div>
+              )}
               <div style={{ marginTop: "0.5rem", background: "rgba(34, 211, 238, 0.1)", padding: "1rem", borderRadius: "12px", border: "1px solid rgba(34, 211, 238, 0.2)", width: "100%" }}>
                 <strong style={{ color: "#67e8f9" }}>Impacto en el paciente:</strong>
                 <p style={{ color: "#cffafe", fontSize: "1rem", marginTop: "0.5rem", lineHeight: "1.5" }}>
                   {gameState.narrative || "Las decisiones se aplicaron sin cambios importantes."}
                 </p>
               </div>
+              
+              {session.turn_phase === "review" && (
+                <div style={{ marginTop: "0.5rem", background: "rgba(16, 185, 129, 0.15)", padding: "1rem", borderRadius: "12px", border: "1px solid rgba(16, 185, 129, 0.3)", width: "100%" }}>
+                  <strong style={{ color: "#34d399" }}>✅ Respuesta Ideal del Turno:</strong>
+                  <p style={{ color: "#a7f3d0", fontSize: "1rem", marginTop: "0.5rem", lineHeight: "1.5" }}>
+                    {getTurn(gameState).correctAnswer || "Ninguna intervención destacada definida para este turno."}
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
