@@ -792,9 +792,9 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
     }
   }, [isHostView, hostSession]);
 
-  // Subscribe to session changes if in multiplayer mode (Player)
+  // Subscribe to session changes
   useEffect(() => {
-    if (!sessionCode || isHostView) return;
+    if (!sessionCode) return;
 
     const fetchSession = async () => {
       const { data } = await supabase!.from("game_sessions").select("*").eq("code", sessionCode).single();
@@ -819,25 +819,32 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "game_sessions", filter: `code=eq.${sessionCode}` }, (payload) => {
         if (payload.new) {
           setSessionPhase(payload.new.turn_phase || "voting");
-          const hostTurn = payload.new.current_turn;
+          if (payload.new.status) {
+            setSessionStatus(payload.new.status);
+          }
 
-          setState((curr) => {
-            if (hostTurn > curr.turnIndex) {
-              let next = { ...curr };
-              while (next.turnIndex < hostTurn && !next.finished) {
-                next = advanceTurn(next);
-              }
-              setWaitingForHost(false); // Unblock for next turn
-              setSelectedChoices([]);
-              setPreviewText(next.narrative);
-              return next;
+          if (isHostView) {
+            if (payload.new.game_state) {
+              setState(normalizeGameState(payload.new.game_state));
             }
-            return curr;
-          });
+          } else {
+            const hostTurn = payload.new.current_turn;
+            setState((curr) => {
+              if (hostTurn > curr.turnIndex) {
+                let next = { ...curr };
+                while (next.turnIndex < hostTurn && !next.finished) {
+                  next = advanceTurn(next);
+                }
+                setWaitingForHost(false); // Unblock for next turn
+                setSelectedChoices([]);
+                setPreviewText(next.narrative);
+                return next;
+              }
+              return curr;
+            });
+          }
         }
-        if (payload.new && payload.new.status) {
-          setSessionStatus(payload.new.status);
-        }
+
       })
       .subscribe();
 
@@ -1200,7 +1207,7 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
           <div className="backgroundGrid" />
           <main className="hostFrame" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", padding: "1rem" }}>
             <motion.section className="hostCard" style={{ width: "100%", maxWidth: "800px", margin: "auto" }} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <HostControls session={{ ...hostSession, status: sessionStatus }} />
+              <HostControls session={{ ...hostSession, status: sessionStatus, game_state: state, turn_phase: sessionPhase, current_turn: state.turnIndex }} />
             </motion.section>
           </main>
         </div>
@@ -1321,7 +1328,7 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
 
         <section className="medicalPocket" style={{ position: "relative" }}>
           {isHostView ? (
-            <HostControls session={hostSession} />
+            <HostControls session={{ ...hostSession, status: sessionStatus, game_state: state, turn_phase: sessionPhase, current_turn: state.turnIndex }} />
           ) : (
             <>
               {sessionPhase === "review" ? (

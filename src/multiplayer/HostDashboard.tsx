@@ -13,6 +13,23 @@ export const HostControls = ({ session }: { session: any }) => {
   // We parse the current game state from the session or use initial state
   const gameState: GameState = session.game_state || createInitialState();
 
+  const topVotesInfo = useMemo(() => {
+    if (!votes.length) return null;
+    let allChoices: TurnChoice[] = [];
+    for (const v of votes) {
+      if (v.choice_a) allChoices.push(JSON.parse(v.choice_a));
+      if (v.choice_b) allChoices.push(JSON.parse(v.choice_b));
+    }
+    const counts = new Map<string, { choice: TurnChoice; count: number }>();
+    for (const c of allChoices) {
+      const id = `${c.kind}:${c.key}`;
+      if (!counts.has(id)) counts.set(id, { choice: c, count: 0 });
+      counts.get(id)!.count++;
+    }
+    const sorted = Array.from(counts.values()).sort((a, b) => b.count - a.count);
+    return sorted.slice(0, 2);
+  }, [votes]);
+
   const playerUrl = typeof window !== "undefined"
     ? `${window.location.origin}${window.location.pathname}?session=${session.code}`
     : "";
@@ -180,6 +197,24 @@ export const HostControls = ({ session }: { session: any }) => {
                </span>
             ))}
           </div>
+
+          {session.status !== "lobby" && session.turn_phase !== "voting" && topVotesInfo && (
+            <div className="hostDetails" style={{ marginTop: "1.5rem", flexDirection: "column", alignItems: "flex-start" }}>
+              <strong style={{ color: "#4ade80", marginBottom: "0.5rem" }}>Decisiones Globales Aplicadas:</strong>
+              {topVotesInfo.map((tv, idx) => (
+                 <div key={idx} style={{ background: "rgba(16, 185, 129, 0.1)", padding: "0.75rem", borderRadius: "12px", border: "1px solid rgba(16, 185, 129, 0.2)", width: "100%", marginBottom: "0.5rem" }}>
+                   <span style={{ color: "#d1fae5", fontWeight: "bold" }}>{tv.choice.key.toUpperCase()}</span>
+                   <span style={{ float: "right", color: "#a7f3d0" }}>{tv.count} votos</span>
+                 </div>
+              ))}
+              <div style={{ marginTop: "0.5rem", background: "rgba(34, 211, 238, 0.1)", padding: "1rem", borderRadius: "12px", border: "1px solid rgba(34, 211, 238, 0.2)", width: "100%" }}>
+                <strong style={{ color: "#67e8f9" }}>Impacto en el paciente:</strong>
+                <p style={{ color: "#cffafe", fontSize: "1rem", marginTop: "0.5rem", lineHeight: "1.5" }}>
+                  {gameState.narrative || "Las decisiones se aplicaron sin cambios importantes."}
+                </p>
+              </div>
+            </div>
+          )}
 
       <div className="hostCard__actions" style={{ marginTop: "auto" }}>
         {error && <div className="hostError">{error}</div>}
