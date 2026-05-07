@@ -507,12 +507,20 @@ button {
   font-size: 0.78rem;
 }
 
-.pocketItem.active {
+.pocketItem.active-green {
   background: linear-gradient(180deg, rgba(123, 255, 138, 0.14), rgba(5, 10, 14, 0.94));
   border-color: rgba(123, 255, 138, 0.42);
   box-shadow:
     inset 0 0 0 1px rgba(123, 255, 138, 0.1),
     0 0 24px rgba(123, 255, 138, 0.14);
+}
+
+.pocketItem.active-blue {
+  background: linear-gradient(180deg, rgba(98, 182, 255, 0.14), rgba(5, 10, 14, 0.94));
+  border-color: rgba(98, 182, 255, 0.42);
+  box-shadow:
+    inset 0 0 0 1px rgba(98, 182, 255, 0.1),
+    0 0 24px rgba(98, 182, 255, 0.14);
 }
 
 .doseControl {

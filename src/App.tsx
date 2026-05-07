@@ -1355,10 +1355,10 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
                       key={med.key}
                       type="button"
                       className={`pocketItem ${
-                        (suspenderMode && hasChoice({ kind: "suspension", key: med.key })) ||
-                        (!suspenderMode &&
-                          hasChoice(buildMedicationChoice(state, med.key)))
-                          ? "active"
+                        suspenderMode && hasChoice({ kind: "suspension", key: med.key })
+                          ? "active-blue"
+                          : !suspenderMode && hasChoice(buildMedicationChoice(state, med.key))
+                          ? "active-green"
                           : ""
                       }`}
                       onClick={() => updateMedicationChoice(med.key)}
@@ -1517,7 +1517,7 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
                     <motion.button
                       key={action.key}
                       type="button"
-                      className={`pocketItem ${hasChoice({ kind: "action", key: action.key }) ? "active" : ""}`}
+                      className={`pocketItem ${hasChoice({ kind: "action", key: action.key }) ? "active-green" : ""}`}
                       onClick={() => toggleActionChoice(action.key)}
                       disabled={sessionPhase !== "voting" || waitingForHost}
                       {...tapFeedback}
@@ -1536,7 +1536,7 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
                     <motion.button
                       key={support.key}
                       type="button"
-                      className={`pocketItem ${hasChoice({ kind: "support", key: support.key }) ? "active" : ""}`}
+                      className={`pocketItem ${hasChoice({ kind: "support", key: support.key }) ? "active-green" : ""}`}
                       onClick={() => toggleSupportChoice(support.key)}
                       disabled={sessionPhase !== "voting" || waitingForHost}
                       {...tapFeedback}
