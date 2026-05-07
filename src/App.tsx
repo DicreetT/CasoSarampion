@@ -783,10 +783,12 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
   const [sessionPhase, setSessionPhase] = useState("voting");
 
   // Sync state for Host
+  const [sessionStatus, setSessionStatus] = useState(hostSession?.status || "playing");
   useEffect(() => {
     if (isHostView && hostSession?.game_state) {
       setState(normalizeGameState(hostSession.game_state));
       setSessionPhase(hostSession.turn_phase || "voting");
+      setSessionStatus(hostSession.status || "playing");
     }
   }, [isHostView, hostSession]);
 
@@ -832,6 +834,9 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
             }
             return curr;
           });
+        }
+        if (payload.new && payload.new.status) {
+          setSessionStatus(payload.new.status);
         }
       })
       .subscribe();
@@ -1188,6 +1193,36 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
     },
   ];
 
+  if (sessionStatus === "lobby") {
+    if (isHostView) {
+      return (
+        <div className="appShell hostShell">
+          <div className="backgroundGrid" />
+          <main className="hostFrame" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", padding: "1rem" }}>
+            <motion.section className="hostCard" style={{ width: "100%", maxWidth: "800px", margin: "auto" }} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <HostControls session={{ ...hostSession, status: sessionStatus }} />
+            </motion.section>
+          </main>
+        </div>
+      );
+    } else {
+      return (
+        <div className="appShell playerShell">
+          <div className="backgroundGrid" />
+          <main className="playerFrame" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", padding: "20px", textAlign: "center" }}>
+            <motion.section className="playerCard" style={{ padding: "3rem", background: "rgba(6, 16, 24, 0.8)", backdropFilter: "blur(12px)", borderRadius: "24px", border: "1px solid rgba(123, 255, 138, 0.2)", width: "100%", maxWidth: "400px", margin: "auto" }} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <h2 style={{ color: "#d9ffe8", fontSize: "1.5rem", marginBottom: "1rem" }}>Sala de Espera</h2>
+              <p style={{ color: "#9ca3af", fontSize: "1.1rem" }}>Esperando a que el anfitrión inicie el juego...</p>
+              <div style={{ marginTop: "2rem" }}>
+                <span style={{ fontSize: "3rem", display: "inline-block", animation: "pulse 2s infinite" }}>⏳</span>
+              </div>
+            </motion.section>
+          </main>
+        </div>
+      );
+    }
+  }
+
   return (
     <motion.div
       className={`appShell ${visualClass}`}
@@ -1242,42 +1277,39 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
             <strong>¿Qué decides hacer?</strong>
           </div>
 
-          <div className="patientCenter">
-            {contagionActive && (
-              <div className="contagionBackdrop" style={{ opacity: contagionOpacity }}>
-                <span className="contagionSilhouette contagionSilhouette--one" />
-                <span className="contagionSilhouette contagionSilhouette--two" />
-                <span className="contagionSilhouette contagionSilhouette--three" />
-              </div>
-            )}
-
-            <div className="hudOverlay">
-              <div className="hudPanel hudPanel--left">
-                <StatBar icon="❤️" label="VIDA" value={state.stats.life} max={4} />
-                <StatBar icon="🌡️" label="FIEBRE" value={state.stats.fever} max={3} />
-                <StatBar icon="⚠️" label="COMPLICACIONES" value={state.stats.complications} max={3} />
-              </div>
-
-              <div className="vitalMonitor">
-                <div className="monitorHeader">
-                  <span>Monitor de cabecera</span>
-                  <strong>{state.visualState.replace("respiratory distress", "distress")}</strong>
-                </div>
-
-                <div className="monitorWave" />
-
-                <div className="vitalRows">
-                  <VitalPill label="FC" value={`${state.vitals.hr} lpm`} tone={state.vitals.hr > 115 ? "danger" : "neutral"} />
-                  <VitalPill label="FR" value={`${state.vitals.rr}/min`} tone={state.vitals.rr >= 28 ? "danger" : "neutral"} />
-                  <VitalPill label="SpO₂" value={`${state.vitals.spo2}%`} tone={state.vitals.spo2 <= 92 ? "danger" : "neutral"} />
-                  <VitalPill label="TEMP" value={`${state.vitals.temperature.toFixed(1)} °C`} tone={state.vitals.temperature >= 39 ? "warning" : "neutral"} />
-                  <VitalPill label="TA" value={state.vitals.bp} tone="neutral" />
-                </div>
-              </div>
+          <div className="patientCenter" style={{ display: "flex", flexDirection: "column", gap: "16px", padding: "16px" }}>
+            <div className="hudPanel horizontal" style={{ display: "flex", flexDirection: "row", gap: "8px", justifyContent: "space-between", background: "rgba(2, 8, 12, 0.76)", padding: "12px", borderRadius: "18px", border: "1px solid rgba(45, 212, 191, 0.22)", zIndex: 10 }}>
+              <StatBar icon="❤️" label="VIDA" value={state.stats.life} max={4} />
+              <StatBar icon="🌡️" label="FIEBRE" value={state.stats.fever} max={3} />
+              <StatBar icon="⚠️" label="COMPLIC" value={state.stats.complications} max={3} />
             </div>
 
-            <div className="patientStage__body">
+            <div className="patientStage__body" style={{ flex: 1, position: "relative", minHeight: "350px", borderRadius: "18px", overflow: "hidden", border: "1px solid rgba(123, 255, 138, 0.04)", background: "radial-gradient(circle at center, rgba(123, 255, 138, 0.1), transparent 48%), linear-gradient(180deg, rgba(5, 10, 15, 0.7), rgba(3, 7, 10, 0.82))" }}>
+              {contagionActive && (
+                <div className="contagionBackdrop" style={{ opacity: contagionOpacity, position: "absolute", inset: 0, zIndex: 1, pointerEvents: "none" }}>
+                  <span className="contagionSilhouette contagionSilhouette--one" />
+                  <span className="contagionSilhouette contagionSilhouette--two" />
+                  <span className="contagionSilhouette contagionSilhouette--three" />
+                </div>
+              )}
               <PatientIllustration state={state} />
+            </div>
+
+            <div className="vitalMonitor" style={{ width: "100%", position: "relative", zIndex: 10 }}>
+              <div className="monitorHeader">
+                <span>Monitor de cabecera</span>
+                <strong>{state.visualState.replace("respiratory distress", "distress")}</strong>
+              </div>
+
+              <div className="monitorWave" />
+
+              <div className="vitalRows" style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "6px" }}>
+                <VitalPill label="FC" value={`${state.vitals.hr}`} tone={state.vitals.hr > 115 ? "danger" : "neutral"} />
+                <VitalPill label="FR" value={`${state.vitals.rr}`} tone={state.vitals.rr >= 28 ? "danger" : "neutral"} />
+                <VitalPill label="SpO₂" value={`${state.vitals.spo2}%`} tone={state.vitals.spo2 <= 92 ? "danger" : "neutral"} />
+                <VitalPill label="TEMP" value={`${state.vitals.temperature.toFixed(1)}`} tone={state.vitals.temperature >= 39 ? "warning" : "neutral"} />
+                <VitalPill label="TA" value={state.vitals.bp} tone="neutral" />
+              </div>
             </div>
           </div>
 
