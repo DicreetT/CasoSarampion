@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import { motion } from "framer-motion";
 import { supabase } from "../lib/supabase";
 import { applyChoices, createInitialState, type GameState, type TurnChoice } from "../game/gameLogic";
@@ -11,6 +12,10 @@ export const HostDashboard = ({ session }: { session: any }) => {
 
   // We parse the current game state from the session or use initial state
   const gameState: GameState = session.game_state || createInitialState();
+
+  const playerUrl = typeof window !== "undefined"
+    ? `${window.location.origin}${window.location.pathname}?session=${session.code}`
+    : "";
 
   useEffect(() => {
     // Fetch initial players and votes
@@ -113,6 +118,20 @@ export const HostDashboard = ({ session }: { session: any }) => {
             <h1>Sesión: {session.code}</h1>
             <p>Turno Actual: {session.current_turn} / {gameState.turnIndex}</p>
           </div>
+
+          {session.status === "lobby" && (
+            <div className="hostSessionPanel" style={{ marginTop: "1.5rem" }}>
+              <div className="hostQrBlock">
+                <div className="hostQr">
+                  <QRCodeSVG value={playerUrl} size={232} includeMargin bgColor="#061018" fgColor="#d9ffe8" />
+                </div>
+                <div className="hostQrMeta">
+                  <span>Jugador</span>
+                  <code style={{ wordBreak: 'break-all' }}>{playerUrl}</code>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="hostDetails" style={{ marginTop: "1.5rem" }}>
             <div className="hostDetail">
