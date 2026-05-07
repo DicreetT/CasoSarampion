@@ -1534,25 +1534,28 @@ export default function App() {
   const sessionCode = getSearchParam("session");
   const [player, setPlayer] = useState<any>(null);
   const [hostSession, setHostSession] = useState<any>(null);
+  const [playerSession, setPlayerSession] = useState<any>(null);
 
-  // If we are host, and we have a session code in URL, we load it
+  // If we have a session code, we load it (both for host and player)
   useEffect(() => {
-    if (mode === "host" && sessionCode) {
-      if (!hostSession) {
-        supabase?.from("game_sessions").select("*").eq("code", sessionCode).single().then(({ data }) => {
-          if (data) setHostSession(data);
-        });
-      }
+    if (sessionCode) {
+      supabase?.from("game_sessions").select("*").eq("code", sessionCode).single().then(({ data }) => {
+        if (data) {
+          if (mode === "host") setHostSession(data);
+          else setPlayerSession(data);
+        }
+      });
 
-      const hostSub = supabase!
-        .channel(`host_game_sessions-${sessionCode}`)
+      const sub = supabase!
+        .channel(`app_game_sessions-${sessionCode}`)
         .on("postgres_changes", { event: "UPDATE", schema: "public", table: "game_sessions", filter: `code=eq.${sessionCode}` }, (payload) => {
-          setHostSession(payload.new);
+          if (mode === "host") setHostSession(payload.new);
+          else setPlayerSession(payload.new);
         })
         .subscribe();
 
       return () => {
-        supabase!.removeChannel(hostSub);
+        supabase!.removeChannel(sub);
       };
     }
   }, [mode, sessionCode]);
@@ -1569,6 +1572,29 @@ export default function App() {
     if (!player) {
       return <PlayerLobby sessionCode={sessionCode} onJoined={setPlayer} />;
     }
+    
+    // Wait for the host to start the game
+    if (playerSession && playerSession.status === "lobby") {
+      return (
+        <motion.div className="appShell hostShell" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <div className="backgroundGrid" />
+          <main className="hostFrame">
+            <motion.section className="hostCard" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+              <div className="hostCard__header">
+                <span className="hostBadge">Jugador</span>
+                <h1>¡Hola, {player.nickname}!</h1>
+                <p>Estás conectado a la sesión <strong>{sessionCode}</strong>.</p>
+              </div>
+              <div className="hostEmpty" style={{ marginTop: "2rem" }}>
+                <strong>Esperando al Host...</strong>
+                <p>El juego comenzará cuando el host inicie el turno 0.</p>
+              </div>
+            </motion.section>
+          </main>
+        </motion.div>
+      );
+    }
+
     return <GameModeApp sessionCode={sessionCode} player={player} />;
   }
 
