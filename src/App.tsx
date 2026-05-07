@@ -24,6 +24,8 @@ import {
   saveGameState,
   saveTurnHistory,
 } from "./services/sessionStore";
+import { PlayerLobby } from "./multiplayer/PlayerLobby";
+import { HostDashboard } from "./multiplayer/HostDashboard";
 
 const medicationOptions: Array<{ key: MedicationKey; label: string; help: string }> = [
   { key: "paracetamol", label: "Paracetamol", help: "Antitérmico con ajuste de dosis" },
@@ -609,7 +611,10 @@ const HostLobby = () => {
       }
 
       setSession((data ?? payload) as HostSession);
-    } catch (insertError) {
+      // Redirect to host dashboard
+      if (typeof window !== "undefined") {
+        window.location.assign(`?mode=host&session=${code}`);
+      }
       logSupabaseError("[Supabase host] create session failed", insertError);
       const fallbackError = createHostErrorState(
         insertError,
@@ -757,11 +762,10 @@ const HostLobby = () => {
   );
 };
 
-function GameModeApp() {
+function GameModeApp({ sessionCode, player }: { sessionCode?: string; player?: any }) {
   const [state, setState] = useState<GameState>(() => {
     const saved = loadSavedGameState();
     if (!saved) return initialState;
-
     return normalizeGameState(saved);
   });
   const [selectedChoices, setSelectedChoices] = useState<TurnChoice[]>([]);
@@ -771,6 +775,37 @@ function GameModeApp() {
   const [previewText, setPreviewText] = useState(
     "Selecciona una intervención del pocket médico y aplica la decisión para avanzar al siguiente turno.",
   );
+  const [waitingForHost, setWaitingForHost] = useState(false);
+
+  // Subscribe to session changes if in multiplayer mode
+  useEffect(() => {
+    if (!sessionCode) return;
+
+    const fetchSession = async () => {
+      const { data } = await supabase!.from("game_sessions").select("*").eq("code", sessionCode).single();
+      if (data && data.game_state) {
+        setState(normalizeGameState(data.game_state));
+      }
+    };
+    fetchSession();
+
+    const sub = supabase!
+      .channel(`game_sessions-${sessionCode}`)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "game_sessions", filter: `code=eq.${sessionCode}` }, (payload) => {
+        if (payload.new.game_state) {
+          const nextState = normalizeGameState(payload.new.game_state);
+          // Only update if it actually advanced the turn or changed state
+          setState(nextState);
+          setWaitingForHost(false); // Host advanced turn
+          setPreviewText(nextState.narrative);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase!.removeChannel(sub);
+    };
+  }, [sessionCode]);
 
   useEffect(() => {
     saveGameState(state);
@@ -1025,7 +1060,7 @@ function GameModeApp() {
     });
   };
 
-  const submitChoice = () => {
+  const submitChoice = async () => {
     if (!selectedChoices.length) {
       setPreviewText("Necesitas elegir al menos una intervención antes de avanzar.");
       return;
@@ -1036,20 +1071,43 @@ function GameModeApp() {
       return;
     }
 
-    const next = applyChoices(
-      state,
-      selectedChoices.map((choice) =>
-          choice.kind === "medication"
-            ? {
-                ...choice,
-                doseMg: state.selectedDoseMg,
-                everyHours: state.selectedDoseMode === "single" ? "" : state.selectedDoseEveryHours,
-                doseMode: state.selectedDoseMode,
-                route: state.selectedAdministrationRoute,
-              }
-            : choice,
-      ),
+    const finalChoices = selectedChoices.map((choice) =>
+      choice.kind === "medication"
+        ? {
+            ...choice,
+            doseMg: state.selectedDoseMg,
+            everyHours: state.selectedDoseMode === "single" ? "" : state.selectedDoseEveryHours,
+            doseMode: state.selectedDoseMode,
+            route: state.selectedAdministrationRoute,
+          }
+        : choice
     );
+
+    if (sessionCode && player) {
+      // Multiplayer mode: send vote to Host
+      setWaitingForHost(true);
+      setPreviewText("Enviando decisión al Host...");
+      
+      try {
+        await supabase!.from("session_votes").insert({
+          session_code: sessionCode,
+          turn: getTurn(state).id,
+          user_id: player.user_id,
+          choice_a: JSON.stringify(finalChoices[0]),
+          choice_b: finalChoices[1] ? JSON.stringify(finalChoices[1]) : null
+        });
+        setPreviewText("Decisión enviada. Esperando a que el Host cierre las votaciones y avance de turno...");
+      } catch (err) {
+        console.error(err);
+        setPreviewText("Hubo un error al enviar tu decisión.");
+        setWaitingForHost(false);
+      }
+      setSelectedChoices([]);
+      return;
+    }
+
+    // Solo Mode logic
+    const next = applyChoices(state, finalChoices);
 
     setTurnHistory((current) => [...current, state]);
     setState({
@@ -1132,27 +1190,31 @@ function GameModeApp() {
           <div className="turnBanner__head">
             <span>TURNO {turn.id} DE {turns.length}</span>
             <div className="turnBanner__actions">
-              <motion.button
-                type="button"
-                className="turnHostButton"
-                onClick={() => {
-                  if (typeof window === "undefined") return;
-                  const url = new URL(window.location.href);
-                  url.searchParams.set("mode", "host");
-                  window.location.assign(url.toString());
-                }}
-                {...tapFeedback}
-              >
-                Modo host
-              </motion.button>
-              <motion.button
-                type="button"
-                className="turnBackButton"
-                onClick={goBackTurn}
-                {...tapFeedback}
-              >
-                Volver al anterior
-              </motion.button>
+              {!sessionCode && (
+                <motion.button
+                  type="button"
+                  className="turnHostButton"
+                  onClick={() => {
+                    if (typeof window === "undefined") return;
+                    const url = new URL(window.location.href);
+                    url.searchParams.set("mode", "host");
+                    window.location.assign(url.toString());
+                  }}
+                  {...tapFeedback}
+                >
+                  Modo host
+                </motion.button>
+              )}
+              {!sessionCode && (
+                <motion.button
+                  type="button"
+                  className="turnBackButton"
+                  onClick={goBackTurn}
+                  {...tapFeedback}
+                >
+                  Volver al anterior
+                </motion.button>
+              )}
             </div>
           </div>
             <p>{turn.scene}</p>
@@ -1435,10 +1497,10 @@ function GameModeApp() {
             type="button"
             className="applyDecisionButton"
             onClick={submitChoice}
-            disabled={isFinished}
+            disabled={isFinished || waitingForHost}
             {...tapFeedback}
           >
-            APLICAR DECISIÓN →
+            {waitingForHost ? "ESPERANDO AL HOST..." : "APLICAR DECISIÓN →"}
           </motion.button>
         </section>
 
@@ -1469,10 +1531,47 @@ function GameModeApp() {
 
 export default function App() {
   const mode = getSearchParam("mode");
+  const sessionCode = getSearchParam("session");
+  const [player, setPlayer] = useState<any>(null);
+  const [hostSession, setHostSession] = useState<any>(null);
+
+  // If we are host, and we have a session code in URL, we load it
+  useEffect(() => {
+    if (mode === "host" && sessionCode) {
+      if (!hostSession) {
+        supabase?.from("game_sessions").select("*").eq("code", sessionCode).single().then(({ data }) => {
+          if (data) setHostSession(data);
+        });
+      }
+
+      const hostSub = supabase!
+        .channel(`host_game_sessions-${sessionCode}`)
+        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "game_sessions", filter: `code=eq.${sessionCode}` }, (payload) => {
+          setHostSession(payload.new);
+        })
+        .subscribe();
+
+      return () => {
+        supabase!.removeChannel(hostSub);
+      };
+    }
+  }, [mode, sessionCode]);
 
   if (mode === "host") {
+    if (hostSession) {
+      return <HostDashboard session={hostSession} />;
+    }
     return <HostLobby />;
   }
 
+  // Player mode
+  if (sessionCode) {
+    if (!player) {
+      return <PlayerLobby sessionCode={sessionCode} onJoined={setPlayer} />;
+    }
+    return <GameModeApp sessionCode={sessionCode} player={player} />;
+  }
+
+  // Fallback to offline/solo mode if no session in URL
   return <GameModeApp />;
 }
