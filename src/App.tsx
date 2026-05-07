@@ -23,9 +23,8 @@ import {
   loadSavedTurnHistory,
   saveGameState,
   saveTurnHistory,
-} from "./services/sessionStore";
 import { PlayerLobby } from "./multiplayer/PlayerLobby";
-import { HostDashboard } from "./multiplayer/HostDashboard";
+import { HostControls } from "./multiplayer/HostDashboard";
 
 const medicationOptions: Array<{ key: MedicationKey; label: string; help: string }> = [
   { key: "paracetamol", label: "Paracetamol", help: "Antitérmico con ajuste de dosis" },
@@ -762,8 +761,11 @@ const HostLobby = () => {
   );
 };
 
-function GameModeApp({ sessionCode, player }: { sessionCode?: string; player?: any }) {
+function GameModeApp({ sessionCode, player, hostSession, isHostView }: { sessionCode?: string; player?: any; hostSession?: any; isHostView?: boolean }) {
   const [state, setState] = useState<GameState>(() => {
+    if (isHostView && hostSession?.game_state) {
+      return normalizeGameState(hostSession.game_state);
+    }
     const saved = loadSavedGameState();
     if (!saved) return initialState;
     return normalizeGameState(saved);
@@ -776,15 +778,34 @@ function GameModeApp({ sessionCode, player }: { sessionCode?: string; player?: a
     "Selecciona una intervención del pocket médico y aplica la decisión para avanzar al siguiente turno.",
   );
   const [waitingForHost, setWaitingForHost] = useState(false);
+  const [sessionPhase, setSessionPhase] = useState("voting");
 
-  // Subscribe to session changes if in multiplayer mode
+  // Sync state for Host
   useEffect(() => {
-    if (!sessionCode) return;
+    if (isHostView && hostSession?.game_state) {
+      setState(normalizeGameState(hostSession.game_state));
+      setSessionPhase(hostSession.turn_phase || "voting");
+    }
+  }, [isHostView, hostSession]);
+
+  // Subscribe to session changes if in multiplayer mode (Player)
+  useEffect(() => {
+    if (!sessionCode || isHostView) return;
 
     const fetchSession = async () => {
       const { data } = await supabase!.from("game_sessions").select("*").eq("code", sessionCode).single();
-      if (data && data.game_state) {
-        setState(normalizeGameState(data.game_state));
+      if (data) {
+        setSessionPhase(data.turn_phase || "voting");
+        // Only override game_state if we are far behind or at Turn 0
+        if (data.current_turn > state.turnIndex) {
+          let next = { ...state };
+          while (next.turnIndex < data.current_turn && !next.finished) {
+            next = advanceTurn(next);
+          }
+          setState(next);
+        } else if (data.current_turn === 0 && state.turnIndex === 0) {
+          setState(normalizeGameState(data.game_state || initialState));
+        }
       }
     };
     fetchSession();
@@ -792,12 +813,23 @@ function GameModeApp({ sessionCode, player }: { sessionCode?: string; player?: a
     const sub = supabase!
       .channel(`game_sessions-${sessionCode}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "game_sessions", filter: `code=eq.${sessionCode}` }, (payload) => {
-        if (payload.new.game_state) {
-          const nextState = normalizeGameState(payload.new.game_state);
-          // Only update if it actually advanced the turn or changed state
-          setState(nextState);
-          setWaitingForHost(false); // Host advanced turn
-          setPreviewText(nextState.narrative);
+        if (payload.new) {
+          setSessionPhase(payload.new.turn_phase || "voting");
+          const hostTurn = payload.new.current_turn;
+
+          setState((curr) => {
+            if (hostTurn > curr.turnIndex) {
+              let next = { ...curr };
+              while (next.turnIndex < hostTurn && !next.finished) {
+                next = advanceTurn(next);
+              }
+              setWaitingForHost(false); // Unblock for next turn
+              setSelectedChoices([]);
+              setPreviewText(next.narrative);
+              return next;
+            }
+            return curr;
+          });
         }
       })
       .subscribe();
@@ -805,7 +837,7 @@ function GameModeApp({ sessionCode, player }: { sessionCode?: string; player?: a
     return () => {
       supabase!.removeChannel(sub);
     };
-  }, [sessionCode]);
+  }, [sessionCode, isHostView]);
 
   useEffect(() => {
     saveGameState(state);
@@ -1084,9 +1116,8 @@ function GameModeApp({ sessionCode, player }: { sessionCode?: string; player?: a
     );
 
     if (sessionCode && player) {
-      // Multiplayer mode: send vote to Host
+      // Multiplayer mode: send vote to Host and apply locally
       setWaitingForHost(true);
-      setPreviewText("Enviando decisión al Host...");
       
       try {
         await supabase!.from("session_votes").insert({
@@ -1096,13 +1127,23 @@ function GameModeApp({ sessionCode, player }: { sessionCode?: string; player?: a
           choice_a: JSON.stringify(finalChoices[0]),
           choice_b: finalChoices[1] ? JSON.stringify(finalChoices[1]) : null
         });
-        setPreviewText("Decisión enviada. Esperando a que el Host cierre las votaciones y avance de turno...");
       } catch (err) {
         console.error(err);
-        setPreviewText("Hubo un error al enviar tu decisión.");
-        setWaitingForHost(false);
       }
+      
+      // Apply the choices locally to see the patient's reaction
+      const next = applyChoices(state, finalChoices);
+      setTurnHistory((current) => [...current, state]);
+      setState({
+        ...next,
+        selectedMedication: null,
+        selectedDoseMg: "0",
+        selectedDoseEveryHours: initialState.selectedDoseEveryHours,
+        selectedDoseMode: initialState.selectedDoseMode,
+        selectedAdministrationRoute: initialState.selectedAdministrationRoute,
+      });
       setSelectedChoices([]);
+      setPreviewText(next.narrative);
       return;
     }
 
@@ -1190,30 +1231,8 @@ function GameModeApp({ sessionCode, player }: { sessionCode?: string; player?: a
           <div className="turnBanner__head">
             <span>TURNO {turn.id} DE {turns.length}</span>
             <div className="turnBanner__actions">
-              {!sessionCode && (
-                <motion.button
-                  type="button"
-                  className="turnHostButton"
-                  onClick={() => {
-                    if (typeof window === "undefined") return;
-                    const url = new URL(window.location.href);
-                    url.searchParams.set("mode", "host");
-                    window.location.assign(url.toString());
-                  }}
-                  {...tapFeedback}
-                >
-                  Modo host
-                </motion.button>
-              )}
-              {!sessionCode && (
-                <motion.button
-                  type="button"
-                  className="turnBackButton"
-                  onClick={goBackTurn}
-                  {...tapFeedback}
-                >
-                  Volver al anterior
-                </motion.button>
+              {isHostView && hostSession?.status === "lobby" && (
+                <span style={{ color: "#10b981", fontWeight: "bold" }}>EN LOBBY</span>
               )}
             </div>
           </div>
@@ -1266,242 +1285,282 @@ function GameModeApp({ sessionCode, player }: { sessionCode?: string; player?: a
           </div>
         </section>
 
-        <section className="medicalPocket">
-          <div className="medicalPocket__title">
-            <span>🧰</span>
-            <h2>Bolsillo médico</h2>
-          </div>
-
-          <div className="selectionSummary" aria-live="polite">
-            <strong>{selectedChoices.length}/2 decisiones</strong>
-            <div className="selectionChips">
-              {selectedChoices.length === 0 ? (
-                <span className="selectionChip selectionChip--muted">Aún no has elegido nada</span>
+        <section className="medicalPocket" style={{ position: "relative" }}>
+          {isHostView ? (
+            <HostControls session={hostSession} />
+          ) : (
+            <>
+              {sessionPhase === "review" ? (
+                <div className="medicalPocket__title">
+                  <span>✅</span>
+                  <h2>Respuesta Ideal del Turno</h2>
+                </div>
               ) : (
-                selectedChoices.map((choice) => (
-                  <span key={choiceId(choice)} className="selectionChip">
-                    {choiceLabel(choice)}
-                  </span>
-                ))
-              )}
-            </div>
-          </div>
-
-          <div className="pocketColumns">
-            <article className="pocketColumn pocketColumn--meds">
-              <h3>💊 Medicamentos</h3>
-
-              {suspenderMode && (
-                <div className="modeNotice">
-                  Elige ahora qué medicación vas a suspender.
+                <div className="medicalPocket__title">
+                  <span>🧰</span>
+                  <h2>Bolsillo médico</h2>
                 </div>
               )}
 
-              {medicationOptions.map((med) => (
-                <motion.button
-                  key={med.key}
-                  type="button"
-                  className={`pocketItem ${
-                    (suspenderMode && hasChoice({ kind: "suspension", key: med.key })) ||
-                    (!suspenderMode &&
-                      hasChoice(buildMedicationChoice(state, med.key)))
-                      ? "active"
-                      : ""
-                  }`}
-                  onClick={() => updateMedicationChoice(med.key)}
-                  {...tapFeedback}
-                >
-                  <div>
-                    <strong>{med.label}</strong>
+              {sessionPhase === "review" && (
+                <div style={{ padding: "1.5rem", background: "rgba(16, 185, 129, 0.1)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: "12px", marginTop: "1rem" }}>
+                  <p style={{ color: "#d1fae5", fontSize: "1.1rem", lineHeight: "1.6" }}>
+                    {turn.correctAnswer || "Ninguna intervención destacada definida para este turno."}
+                  </p>
+                </div>
+              )}
+
+              {(waitingForHost || sessionPhase !== "voting") && sessionPhase !== "review" && (
+                <div style={{ position: "absolute", inset: 0, background: "rgba(6, 16, 24, 0.85)", backdropFilter: "blur(4px)", zIndex: 10, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "1rem" }}>
+                  <div style={{ textAlign: "center", padding: "2rem", maxWidth: "80%" }}>
+                    <h3 style={{ color: "#fff", marginBottom: "0.5rem", fontSize: "1.5rem" }}>
+                      {waitingForHost ? "Decisión enviada" : "Votaciones cerradas"}
+                    </h3>
+                    <p style={{ color: "#9ca3af", fontSize: "1.1rem" }}>
+                      Esperando a que el Host pase al siguiente turno para continuar...
+                    </p>
                   </div>
-                </motion.button>
-              ))}
+                </div>
+              )}
 
-              <label className="doseControl">
-                <span>Dosis en mg</span>
-                <input
-                  type="number"
-                  min="0"
-                  step="50"
-                  value={state.selectedDoseMg}
-                  readOnly={suspenderMode}
-                  onChange={(event) => {
-                    const dose = event.target.value;
-                    setState((current) => ({
-                      ...current,
-                      selectedDoseMg: dose,
-                    }));
+              <div className="selectionSummary" aria-live="polite">
+                <strong>{selectedChoices.length}/2 decisiones</strong>
+                <div className="selectionChips">
+                  {selectedChoices.length === 0 ? (
+                    <span className="selectionChip selectionChip--muted">Aún no has elegido nada</span>
+                  ) : (
+                    selectedChoices.map((choice) => (
+                      <span key={choiceId(choice)} className="selectionChip">
+                        {choiceLabel(choice)}
+                      </span>
+                    ))
+                  )}
+                </div>
+              </div>
 
-                    if (!suspenderMode) {
-                      setSelectedChoices((current) =>
-                        current.map((choice) =>
-                          choice.kind === "medication"
-                            ? {
-                                ...choice,
+              <div className="pocketColumns">
+                <article className="pocketColumn pocketColumn--meds">
+                  <h3>💊 Medicamentos</h3>
+
+                  {suspenderMode && (
+                    <div className="modeNotice">
+                      Elige ahora qué medicación vas a suspender.
+                    </div>
+                  )}
+
+                  {medicationOptions.map((med) => (
+                    <motion.button
+                      key={med.key}
+                      type="button"
+                      className={`pocketItem ${
+                        (suspenderMode && hasChoice({ kind: "suspension", key: med.key })) ||
+                        (!suspenderMode &&
+                          hasChoice(buildMedicationChoice(state, med.key)))
+                          ? "active"
+                          : ""
+                      }`}
+                      onClick={() => updateMedicationChoice(med.key)}
+                      disabled={sessionPhase !== "voting" || waitingForHost}
+                      {...tapFeedback}
+                    >
+                      <div>
+                        <strong>{med.label}</strong>
+                      </div>
+                    </motion.button>
+                  ))}
+
+                  <label className="doseControl">
+                    <span>Dosis en mg</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="50"
+                      value={state.selectedDoseMg}
+                      readOnly={suspenderMode || sessionPhase !== "voting" || waitingForHost}
+                      onChange={(event) => {
+                        const dose = event.target.value;
+                        setState((current) => ({
+                          ...current,
+                          selectedDoseMg: dose,
+                        }));
+
+                        if (!suspenderMode) {
+                          setSelectedChoices((current) =>
+                            current.map((choice) =>
+                              choice.kind === "medication"
+                                ? {
+                                    ...choice,
+                                    doseMg: dose,
+                                    everyHours: state.selectedDoseMode === "single" ? "" : state.selectedDoseEveryHours,
+                                    doseMode: state.selectedDoseMode,
+                                    route: state.selectedAdministrationRoute,
+                                  }
+                                : choice,
+                            ),
+                          );
+
+                          if (state.selectedMedication) {
+                            setPreviewText(
+                              getActionOutcomePreview({
+                                kind: "medication",
+                                key: state.selectedMedication,
                                 doseMg: dose,
                                 everyHours: state.selectedDoseMode === "single" ? "" : state.selectedDoseEveryHours,
                                 doseMode: state.selectedDoseMode,
                                 route: state.selectedAdministrationRoute,
-                              }
-                            : choice,
-                        ),
-                      );
-
-                      if (state.selectedMedication) {
-                        setPreviewText(
-                          getActionOutcomePreview({
-                            kind: "medication",
-                            key: state.selectedMedication,
-                            doseMg: dose,
-                            everyHours: state.selectedDoseMode === "single" ? "" : state.selectedDoseEveryHours,
-                            doseMode: state.selectedDoseMode,
-                            route: state.selectedAdministrationRoute,
-                          }),
-                        );
-                      }
-                    }
-                  }}
-                />
-              </label>
-
-              <div className="controlGroup">
-                <span className="controlGroup__label">Pauta</span>
-                <div className="toggleRow">
-                  {doseModeOptions.map((option) => (
-                    <motion.button
-                      key={option.key}
-                      type="button"
-                      className={`toggleButton ${state.selectedDoseMode === option.key ? "active" : ""}`}
-                      onClick={() => {
-                        if (!suspenderMode) setDoseMode(option.key);
+                              }),
+                            );
+                          }
+                        }
                       }}
-                      disabled={suspenderMode}
-                      {...tapFeedback}
-                    >
-                      <strong>{option.label}</strong>
-                      <small>{option.help}</small>
-                    </motion.button>
-                  ))}
-                </div>
-              </div>
+                    />
+                  </label>
 
-              {state.selectedDoseMode !== "single" && (
-                <label className="doseControl">
-                  <span>Cada cuántas horas</span>
-                  <input
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={state.selectedDoseEveryHours}
-                    readOnly={suspenderMode}
-                    onChange={(event) => {
-                      const everyHours = event.target.value;
-                      setState((current) => ({
-                        ...current,
-                        selectedDoseEveryHours: everyHours,
-                      }));
+                  <div className="controlGroup">
+                    <span className="controlGroup__label">Pauta</span>
+                    <div className="toggleRow">
+                      {doseModeOptions.map((option) => (
+                        <motion.button
+                          key={option.key}
+                          type="button"
+                          className={`toggleButton ${state.selectedDoseMode === option.key ? "active" : ""}`}
+                          onClick={() => {
+                            if (!suspenderMode) setDoseMode(option.key);
+                          }}
+                          disabled={suspenderMode || sessionPhase !== "voting" || waitingForHost}
+                          {...tapFeedback}
+                        >
+                          <strong>{option.label}</strong>
+                          <small>{option.help}</small>
+                        </motion.button>
+                      ))}
+                    </div>
+                  </div>
 
-                      if (!suspenderMode) {
-                        setSelectedChoices((current) =>
-                          current.map((choice) =>
-                            choice.kind === "medication"
-                              ? {
-                                  ...choice,
+                  {state.selectedDoseMode !== "single" && (
+                    <label className="doseControl">
+                      <span>Cada cuántas horas</span>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={state.selectedDoseEveryHours}
+                        readOnly={suspenderMode || sessionPhase !== "voting" || waitingForHost}
+                        onChange={(event) => {
+                          const everyHours = event.target.value;
+                          setState((current) => ({
+                            ...current,
+                            selectedDoseEveryHours: everyHours,
+                          }));
+
+                          if (!suspenderMode) {
+                            setSelectedChoices((current) =>
+                              current.map((choice) =>
+                                choice.kind === "medication"
+                                  ? {
+                                      ...choice,
+                                      doseMg: state.selectedDoseMg,
+                                      everyHours,
+                                      doseMode: state.selectedDoseMode,
+                                      route: state.selectedAdministrationRoute,
+                                    }
+                                  : choice,
+                              ),
+                            );
+
+                            if (state.selectedMedication) {
+                              setPreviewText(
+                                getActionOutcomePreview({
+                                  kind: "medication",
+                                  key: state.selectedMedication,
                                   doseMg: state.selectedDoseMg,
                                   everyHours,
                                   doseMode: state.selectedDoseMode,
                                   route: state.selectedAdministrationRoute,
-                                }
-                              : choice,
-                          ),
-                        );
+                                }),
+                              );
+                            }
+                          }
+                        }}
+                      />
+                    </label>
+                  )}
 
-                        if (state.selectedMedication) {
-                          setPreviewText(
-                            getActionOutcomePreview({
-                              kind: "medication",
-                              key: state.selectedMedication,
-                              doseMg: state.selectedDoseMg,
-                              everyHours,
-                              doseMode: state.selectedDoseMode,
-                              route: state.selectedAdministrationRoute,
-                            }),
-                          );
-                        }
-                      }
-                    }}
-                  />
-                </label>
-              )}
+                  <div className="controlGroup">
+                    <span className="controlGroup__label">Vía de administración</span>
+                    <div className="toggleRow toggleRow--routes">
+                      {administrationRouteOptions.map((option) => (
+                        <motion.button
+                          key={option.key}
+                          type="button"
+                          className={`toggleButton ${state.selectedAdministrationRoute === option.key ? "active" : ""}`}
+                          onClick={() => {
+                            if (!suspenderMode) setAdministrationRoute(option.key);
+                          }}
+                          disabled={suspenderMode || sessionPhase !== "voting" || waitingForHost}
+                          {...tapFeedback}
+                        >
+                          <strong>{option.label}</strong>
+                          <small>{option.help}</small>
+                        </motion.button>
+                      ))}
+                    </div>
+                  </div>
+                </article>
 
-              <div className="controlGroup">
-                <span className="controlGroup__label">Vía de administración</span>
-                <div className="toggleRow toggleRow--routes">
-                  {administrationRouteOptions.map((option) => (
+                <article className="pocketColumn pocketColumn--actions">
+                  <h3>🖐️ Acciones</h3>
+
+                  {actionOptions.map((action) => (
                     <motion.button
-                      key={option.key}
+                      key={action.key}
                       type="button"
-                      className={`toggleButton ${state.selectedAdministrationRoute === option.key ? "active" : ""}`}
-                      onClick={() => {
-                        if (!suspenderMode) setAdministrationRoute(option.key);
-                      }}
-                      disabled={suspenderMode}
+                      className={`pocketItem ${hasChoice({ kind: "action", key: action.key }) ? "active" : ""}`}
+                      onClick={() => toggleActionChoice(action.key)}
+                      disabled={sessionPhase !== "voting" || waitingForHost}
                       {...tapFeedback}
                     >
-                      <strong>{option.label}</strong>
-                      <small>{option.help}</small>
+                      <div>
+                        <strong>{action.label}</strong>
+                      </div>
                     </motion.button>
                   ))}
-                </div>
+                </article>
+
+                <article className="pocketColumn pocketColumn--support">
+                  <h3>💧 Soporte</h3>
+
+                  {supportOptions.map((support) => (
+                    <motion.button
+                      key={support.key}
+                      type="button"
+                      className={`pocketItem ${hasChoice({ kind: "support", key: support.key }) ? "active" : ""}`}
+                      onClick={() => toggleSupportChoice(support.key)}
+                      disabled={sessionPhase !== "voting" || waitingForHost}
+                      {...tapFeedback}
+                    >
+                      <div>
+                        <strong>{support.label}</strong>
+                      </div>
+                    </motion.button>
+                  ))}
+                </article>
               </div>
-            </article>
 
-            <article className="pocketColumn pocketColumn--actions">
-              <h3>🖐️ Acciones</h3>
-
-              {actionOptions.map((action) => (
+              <div className="actionPreview" style={{ marginTop: "1rem" }}>
+                <p>{previewText}</p>
                 <motion.button
-                  key={action.key}
                   type="button"
-                  className={`pocketItem ${hasChoice({ kind: "action", key: action.key }) ? "active" : ""}`}
-                  onClick={() => toggleActionChoice(action.key)}
+                  className="applyDecisionButton"
+                  onClick={submitChoice}
+                  disabled={isFinished || waitingForHost || sessionPhase !== "voting"}
                   {...tapFeedback}
                 >
-                  <div>
-                    <strong>{action.label}</strong>
-                  </div>
+                  {waitingForHost ? "ESPERANDO AL HOST..." : "APLICAR DECISIÓN →"}
                 </motion.button>
-              ))}
-            </article>
-
-            <article className="pocketColumn pocketColumn--support">
-              <h3>💧 Soporte</h3>
-
-              {supportOptions.map((support) => (
-                <motion.button
-                  key={support.key}
-                  type="button"
-                  className={`pocketItem ${hasChoice({ kind: "support", key: support.key }) ? "active" : ""}`}
-                  onClick={() => toggleSupportChoice(support.key)}
-                  {...tapFeedback}
-                >
-                  <div>
-                    <strong>{support.label}</strong>
-                  </div>
-                </motion.button>
-              ))}
-            </article>
-          </div>
-
-          <motion.button
-            type="button"
-            className="applyDecisionButton"
-            onClick={submitChoice}
-            disabled={isFinished || waitingForHost}
-            {...tapFeedback}
-          >
-            {waitingForHost ? "ESPERANDO AL HOST..." : "APLICAR DECISIÓN →"}
-          </motion.button>
+              </div>
+            </>
+          )}
         </section>
 
         <section className={`resultStrip ${outcomeTone} ${currentOutcome ? "visible" : ""}`}>
@@ -1562,7 +1621,7 @@ export default function App() {
 
   if (mode === "host") {
     if (hostSession) {
-      return <HostDashboard session={hostSession} />;
+      return <GameModeApp sessionCode={sessionCode || ""} hostSession={hostSession} isHostView={true} />;
     }
     return <HostLobby />;
   }

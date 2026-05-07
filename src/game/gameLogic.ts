@@ -69,6 +69,7 @@ export interface TurnDefinition {
   label: string;
   scene: string;
   focus: string;
+  correctAnswer: string;
 }
 
 export interface Outcome {
@@ -126,42 +127,49 @@ export const turns: TurnDefinition[] = [
     label: "Coffee break",
     scene: "Te llaman mientras tomas café: paciente de 21 años con fiebre, tos, coriza, conjuntivitis y exantema.",
     focus: "El primer gesto clínico importa más que la prisa.",
+    correctAnswer: "Aislar al paciente, colocar EPIs y notificar a salud pública. No prescribir fármacos sin una evaluación completa.",
   },
   {
     id: 1,
     label: "Fiebre 39.5 C",
     scene: "La temperatura del paciente sube y la tos continua.",
     focus: "El control sintomático puede ayudar, pero hay que evitar complicaciones.",
+    correctAnswer: "Administrar Paracetamol a dosis terapéutica (500-1000mg). Evitar antibióticos innecesarios.",
   },
   {
     id: 2,
     label: "R1 pauta corticoides",
     scene: "Le he puesto corticoides para controlar la inflamación y el paciente muestra mejoria.",
     focus: "Aquí la duda antiinflamatoria suele traducirse en más complicaciones.",
+    correctAnswer: "Suspender corticoides inmediatamente. Identificar contactos para prevenir brote.",
   },
   {
     id: 3,
     label: "Diarrea y deshidratación",
     scene: "La ingesta cae, la mucosa se seca y el paciente pierde volumen.",
     focus: "La hidratación correcta cambia el pronóstico.",
+    correctAnswer: "Soporte con hidratación IV para recuperar volumen.",
   },
   {
     id: 4,
     label: "Deterioro respiratorio",
     scene: "Baja la SpO2 y aumenta la frecuencia respiratoria.",
     focus: "Aquí importa reconocer gravedad, oxígeno y escalada de cuidados.",
+    correctAnswer: "Administrar oxígeno y evaluar posible neumonía asociada. Evitar el alta prematura.",
   },
   {
     id: 5,
     label: "Convulsión / encefalitis",
     scene: "Aparece un episodio convulsivo y el equipo sospecha afectación neurológica.",
     focus: "La protección de la vía aérea y el manejo de crisis son prioritarios.",
+    correctAnswer: "Administrar Lorazepam IV dosis única y trasladar a UCI para estabilización.",
   },
   {
     id: 6,
     label: "Alta ambulatoria y cierre",
     scene: "La mejoría permite organizar el alta ambulatoria y cerrar el circuito de contactos.",
     focus: "El cierre final premia una evolución bien contenida y una notificación completa.",
+    correctAnswer: "Dar de alta tras asegurar aislamiento domiciliario y seguimiento ambulatorio.",
   },
 ];
 

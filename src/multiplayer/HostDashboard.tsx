@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { supabase } from "../lib/supabase";
 import { applyChoices, createInitialState, type GameState, type TurnChoice } from "../game/gameLogic";
 
-export const HostDashboard = ({ session }: { session: any }) => {
+export const HostControls = ({ session }: { session: any }) => {
   const [players, setPlayers] = useState<any[]>([]);
   const [votes, setVotes] = useState<any[]>([]);
   const [advancing, setAdvancing] = useState(false);
@@ -95,7 +95,7 @@ export const HostDashboard = ({ session }: { session: any }) => {
       const { error: updateError } = await supabase!
         .from("game_sessions")
         .update({
-          current_turn: session.current_turn + 1,
+          turn_phase: "closed",
           game_state: nextState
         })
         .eq("code", session.code);
@@ -108,16 +108,42 @@ export const HostDashboard = ({ session }: { session: any }) => {
     }
   };
 
+  const applyGlobalDecisions = async () => {
+    setAdvancing(true);
+    try {
+      await supabase!.from("game_sessions").update({ turn_phase: "applied" }).eq("code", session.code);
+    } finally {
+      setAdvancing(false);
+    }
+  };
+
+  const showCorrectAnswer = async () => {
+    setAdvancing(true);
+    try {
+      await supabase!.from("game_sessions").update({ turn_phase: "review" }).eq("code", session.code);
+    } finally {
+      setAdvancing(false);
+    }
+  };
+
+  const nextTurn = async () => {
+    setAdvancing(true);
+    try {
+      await supabase!.from("game_sessions").update({ 
+        current_turn: session.current_turn + 1,
+        turn_phase: "voting" 
+      }).eq("code", session.code);
+    } finally {
+      setAdvancing(false);
+    }
+  };
+
   return (
-    <motion.div className="appShell hostShell" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-      <div className="backgroundGrid" />
-      <main className="hostFrame">
-        <motion.section className="hostCard" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="hostCard__header">
-            <span className="hostBadge">Host Dashboard</span>
-            <h1>Sesión: {session.code}</h1>
-            <p>Turno Actual: {session.current_turn} / {gameState.turnIndex}</p>
-          </div>
+    <div className="medicalPocket__title" style={{ display: "flex", flexDirection: "column", gap: "1.5rem", height: "100%" }}>
+      <div>
+        <h2>Host Dashboard</h2>
+        <p style={{ color: "#9ca3af", fontSize: "0.875rem", marginTop: "0.25rem" }}>Sesión: {session.code} | Turno: {session.current_turn} / {gameState.turnIndex}</p>
+      </div>
 
           {session.status === "lobby" && (
             <div className="hostSessionPanel" style={{ marginTop: "1.5rem" }}>
@@ -153,21 +179,31 @@ export const HostDashboard = ({ session }: { session: any }) => {
             ))}
           </div>
 
-          <div className="hostCard__actions" style={{ marginTop: "2rem" }}>
-            {error && <div className="hostError">{error}</div>}
-            <motion.button
-              type="button"
-              className="hostButton"
-              onClick={advanceTurn}
-              disabled={advancing}
-              whileTap={{ scale: 0.985 }}
-              whileHover={{ y: -2 }}
-            >
-              {advancing ? "Procesando..." : session.status === "lobby" ? "Empezar Juego" : "Cerrar Votaciones y Avanzar"}
-            </motion.button>
-          </div>
-        </motion.section>
-      </main>
-    </motion.div>
+      <div className="hostCard__actions" style={{ marginTop: "auto" }}>
+        {error && <div className="hostError">{error}</div>}
+        
+        {session.status === "lobby" ? (
+          <motion.button type="button" className="hostButton" onClick={advanceTurn} disabled={advancing} whileTap={{ scale: 0.985 }}>
+            {advancing ? "Procesando..." : "Empezar Juego"}
+          </motion.button>
+        ) : session.turn_phase === "voting" ? (
+          <motion.button type="button" className="hostButton" onClick={advanceTurn} disabled={advancing} whileTap={{ scale: 0.985 }}>
+            {advancing ? "Procesando..." : "Cerrar Votaciones"}
+          </motion.button>
+        ) : session.turn_phase === "closed" ? (
+          <motion.button type="button" className="hostButton" onClick={applyGlobalDecisions} disabled={advancing} whileTap={{ scale: 0.985 }}>
+            {advancing ? "Procesando..." : "Aplicar Decisiones Globales"}
+          </motion.button>
+        ) : session.turn_phase === "applied" ? (
+          <motion.button type="button" className="hostButton" onClick={showCorrectAnswer} disabled={advancing} whileTap={{ scale: 0.985 }}>
+            {advancing ? "Procesando..." : "Ver Respuesta Correcta"}
+          </motion.button>
+        ) : (
+          <motion.button type="button" className="hostButton" onClick={nextTurn} disabled={advancing} whileTap={{ scale: 0.985 }}>
+            {advancing ? "Procesando..." : "Pasar al Siguiente Turno"}
+          </motion.button>
+        )}
+      </div>
+    </div>
   );
 };
