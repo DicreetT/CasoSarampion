@@ -79,6 +79,23 @@ type HostSession = {
   status: string;
 };
 
+type HostErrorStage = "auth" | "insert" | "general";
+
+type HostErrorState = {
+  stage: HostErrorStage;
+  message: string;
+  code: string | number | null;
+  raw: unknown;
+};
+
+type HostDebugState = {
+  currentAuthSession: unknown;
+  currentUserId: string | null;
+  insertPayload: Record<string, unknown> | null;
+  authError: HostErrorState | null;
+  insertError: HostErrorState | null;
+};
+
 const initialState = createInitialState();
 
 const getSearchParam = (name: string) => {
@@ -100,6 +117,138 @@ const generateSessionCode = () => {
   }
 
   return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
+};
+
+const getSupabaseErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  if (error && typeof error === "object" && "message" in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string" && message.trim()) {
+      return message;
+    }
+  }
+
+  return fallback;
+};
+
+const getSupabaseErrorCode = (error: unknown) => {
+  if (error && typeof error === "object" && "code" in error) {
+    const code = (error as { code?: unknown }).code;
+    if (typeof code === "string" || typeof code === "number") {
+      return code;
+    }
+  }
+
+  return null;
+};
+
+const createHostErrorState = (
+  error: unknown,
+  stage: HostErrorStage,
+  fallback: string,
+): HostErrorState => ({
+  stage,
+  message: getSupabaseErrorMessage(error, fallback),
+  code: getSupabaseErrorCode(error),
+  raw: error,
+});
+
+const safeStringify = (value: unknown) => {
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+};
+
+const logSupabaseError = (label: string, error: unknown) => {
+  const asRecord =
+    error && typeof error === "object"
+      ? {
+          message: "message" in error ? (error as { message?: unknown }).message : undefined,
+          code: "code" in error ? (error as { code?: unknown }).code : undefined,
+          details: "details" in error ? (error as { details?: unknown }).details : undefined,
+          hint: "hint" in error ? (error as { hint?: unknown }).hint : undefined,
+          status: "status" in error ? (error as { status?: unknown }).status : undefined,
+          statusCode:
+            "statusCode" in error ? (error as { statusCode?: unknown }).statusCode : undefined,
+        }
+      : error;
+
+  console.error(`[Supabase] ${label}`, asRecord, error);
+};
+
+const sleep = (milliseconds: number) =>
+  new Promise<void>((resolve) => {
+    window.setTimeout(resolve, milliseconds);
+  });
+
+const ensureSupabaseAnonymousSession = async () => {
+  if (!supabase) {
+    throw new Error("Supabase no está inicializado.");
+  }
+
+  const { data: currentSessionData, error: currentSessionError } = await supabase.auth.getSession();
+  console.log("[Supabase host] current session", currentSessionData.session ?? null);
+  console.log("[Supabase host] current user id", currentSessionData.session?.user?.id ?? null);
+  logSupabaseError("[Supabase host] auth error", currentSessionError);
+
+  if (currentSessionData.session) {
+    return currentSessionData.session;
+  }
+
+  const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
+  console.log("[Supabase host] anonymous sign-in session", anonData.session ?? null);
+  console.log("[Supabase host] anonymous sign-in user id", anonData.session?.user?.id ?? null);
+  logSupabaseError("[Supabase host] anonymous sign-in error", anonError);
+
+  if (anonError) {
+    throw anonError;
+  }
+
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const { data: refreshedSessionData, error: refreshedSessionError } =
+      await supabase.auth.getSession();
+    console.log(
+      `[Supabase host] refreshed session attempt ${attempt + 1}`,
+      refreshedSessionData.session ?? null,
+    );
+    console.log(
+      `[Supabase host] refreshed user id attempt ${attempt + 1}`,
+      refreshedSessionData.session?.user?.id ?? null,
+    );
+    logSupabaseError(
+      `[Supabase host] refreshed session error attempt ${attempt + 1}`,
+      refreshedSessionError,
+    );
+
+    if (refreshedSessionError) {
+      throw refreshedSessionError;
+    }
+
+    if (refreshedSessionData.session) {
+      return refreshedSessionData.session;
+    }
+
+    await sleep(150);
+  }
+
+  const { data: finalUserData, error: finalUserError } = await supabase.auth.getUser();
+  console.log("[Supabase host] final user id", finalUserData.user?.id ?? null);
+  logSupabaseError("[Supabase host] final user error", finalUserError);
+
+  if (finalUserError) {
+    throw finalUserError;
+  }
+
+  if (!finalUserData.user) {
+    throw new Error("No se pudo completar la autenticación anónima de Supabase.");
+  }
+
+  return finalUserData.user;
 };
 
 const normalizeGameState = (saved: GameState): GameState => {
@@ -333,7 +482,14 @@ const PatientIllustration = ({ state }: { state: GameState }) => {
 const HostLobby = () => {
   const [session, setSession] = useState<HostSession | null>(null);
   const [creating, setCreating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [hostError, setHostError] = useState<HostErrorState | null>(null);
+  const [debugState, setDebugState] = useState<HostDebugState>({
+    currentAuthSession: null,
+    currentUserId: null,
+    insertPayload: null,
+    authError: null,
+    insertError: null,
+  });
 
   const playerUrl =
     typeof window === "undefined" || !session
@@ -342,12 +498,24 @@ const HostLobby = () => {
 
   const createSession = async () => {
     if (!hasSupabaseConfig || !supabase) {
-      setError("Supabase no está configurado para crear sesiones.");
+      const configError = createHostErrorState(
+        new Error("Supabase no está configurado para crear sesiones."),
+        "general",
+        "Supabase no está configurado para crear sesiones.",
+      );
+      setHostError(configError);
       return;
     }
 
     setCreating(true);
-    setError(null);
+    setHostError(null);
+    setDebugState({
+      currentAuthSession: null,
+      currentUserId: null,
+      insertPayload: null,
+      authError: null,
+      insertError: null,
+    });
 
     const code = generateSessionCode();
     const payload = {
@@ -357,21 +525,99 @@ const HostLobby = () => {
     };
 
     try {
+      await ensureSupabaseAnonymousSession();
+
+      const { data: currentSessionData, error: currentSessionError } = await supabase.auth.getSession();
+      const currentAuthSession = currentSessionData.session ?? null;
+      const currentUserId = currentAuthSession?.user?.id ?? null;
+
+      console.log("[Supabase host] current session after auth", currentAuthSession);
+      console.log("[Supabase host] current user id after auth", currentUserId);
+      logSupabaseError("[Supabase host] current session error after auth", currentSessionError);
+
+      if (currentSessionError) {
+        const authError = createHostErrorState(
+          currentSessionError,
+          "auth",
+          "Supabase no devolvió un mensaje de error de autenticación.",
+        );
+        setDebugState((current) => ({
+          ...current,
+          currentAuthSession,
+          currentUserId,
+          authError,
+        }));
+        setHostError({
+          ...authError,
+          message: `AUTH ERROR: ${authError.message}`,
+        });
+        return;
+      }
+
+      if (!currentAuthSession || !currentUserId) {
+        const authError = createHostErrorState(
+          new Error("No se pudo completar la autenticación anónima de Supabase."),
+          "auth",
+          "No se pudo completar la autenticación anónima de Supabase.",
+        );
+        setDebugState((current) => ({
+          ...current,
+          currentAuthSession,
+          currentUserId,
+          authError,
+        }));
+        setHostError({
+          ...authError,
+          message: `AUTH ERROR: ${authError.message}`,
+        });
+        return;
+      }
+
+      setDebugState((current) => ({
+        ...current,
+        currentAuthSession,
+        currentUserId,
+        authError: null,
+        insertPayload: payload,
+      }));
+
+      console.log("[Supabase host] insert payload", payload);
+
       const { data, error: insertError } = await supabase
         .from("game_sessions")
         .insert(payload)
-        .select()
+        .select("code, current_turn, status")
         .single();
 
       if (insertError) {
+        logSupabaseError("[Supabase host] insert error", insertError);
+        const normalizedInsertError = createHostErrorState(
+          insertError,
+          "insert",
+          "Supabase no devolvió un mensaje de error de inserción.",
+        );
+        setDebugState((current) => ({
+          ...current,
+          insertPayload: payload,
+          insertError: normalizedInsertError,
+        }));
+        setHostError({
+          ...normalizedInsertError,
+          message: `INSERT ERROR: ${normalizedInsertError.message}`,
+        });
         throw insertError;
       }
 
       setSession((data ?? payload) as HostSession);
     } catch (insertError) {
-      const message =
-        insertError instanceof Error ? insertError.message : "No se pudo crear la sesión.";
-      setError(message);
+      logSupabaseError("[Supabase host] create session failed", insertError);
+      const fallbackError = createHostErrorState(
+        insertError,
+        "general",
+        "Supabase no devolvió un mensaje de error.",
+      );
+
+      setHostError((current) => current ?? fallbackError);
     } finally {
       setCreating(false);
     }
@@ -412,7 +658,23 @@ const HostLobby = () => {
             </motion.button>
           </div>
 
-          {error && <div className="hostError">{error}</div>}
+          {hostError && (
+            <div className="hostError">
+              <strong>
+                {hostError.stage === "auth"
+                  ? "AUTH ERROR"
+                  : hostError.stage === "insert"
+                  ? "INSERT ERROR"
+                  : "ERROR"}
+                {hostError.code !== null ? ` (${hostError.code})` : ""}
+              </strong>
+              <span>{hostError.message}</span>
+              <details className="hostError__details">
+                <summary>Ver error completo</summary>
+                <pre>{safeStringify(hostError.raw)}</pre>
+              </details>
+            </div>
+          )}
 
           <div className="hostDetails">
             <div className="hostDetail">
@@ -422,6 +684,43 @@ const HostLobby = () => {
             <div className="hostDetail">
               <span>Turno</span>
               <strong>{session ? session.current_turn : 0}</strong>
+            </div>
+            <div className="hostDetail">
+              <span>User ID</span>
+              <strong>{debugState.currentUserId ?? "Sin autenticación aún"}</strong>
+            </div>
+            <div className="hostDetail">
+              <span>Auth</span>
+              <strong>{debugState.authError ? "Error" : debugState.currentUserId ? "OK" : "Pendiente"}</strong>
+            </div>
+          </div>
+
+          <div className="hostDebugPanel">
+            <div className="hostDebugPanel__header">
+              <strong>Debug host</strong>
+              <span>Visible solo en modo host</span>
+            </div>
+            <div className="hostDebugPanel__grid">
+              <div>
+                <span>Current user id</span>
+                <code>{debugState.currentUserId ?? "null"}</code>
+              </div>
+              <div>
+                <span>Auth session</span>
+                <code>{safeStringify(debugState.currentAuthSession)}</code>
+              </div>
+              <div>
+                <span>Insert payload</span>
+                <code>{safeStringify(debugState.insertPayload)}</code>
+              </div>
+              <div>
+                <span>Auth error</span>
+                <code>{debugState.authError ? safeStringify(debugState.authError) : "null"}</code>
+              </div>
+              <div>
+                <span>Insert error</span>
+                <code>{debugState.insertError ? safeStringify(debugState.insertError) : "null"}</code>
+              </div>
             </div>
           </div>
 
@@ -830,8 +1129,22 @@ function GameModeApp() {
       <main className="simulatorFrame">
         <section className={`heroScene ${visualClass}`}>
           <div className="turnBanner">
-            <div className="turnBanner__head">
-              <span>TURNO {turn.id} DE {turns.length}</span>
+          <div className="turnBanner__head">
+            <span>TURNO {turn.id} DE {turns.length}</span>
+            <div className="turnBanner__actions">
+              <motion.button
+                type="button"
+                className="turnHostButton"
+                onClick={() => {
+                  if (typeof window === "undefined") return;
+                  const url = new URL(window.location.href);
+                  url.searchParams.set("mode", "host");
+                  window.location.assign(url.toString());
+                }}
+                {...tapFeedback}
+              >
+                Modo host
+              </motion.button>
               <motion.button
                 type="button"
                 className="turnBackButton"
@@ -841,6 +1154,7 @@ function GameModeApp() {
                 Volver al anterior
               </motion.button>
             </div>
+          </div>
             <p>{turn.scene}</p>
             <strong>¿Qué decides hacer?</strong>
           </div>

@@ -141,6 +141,14 @@ button {
   margin-bottom: 12px;
 }
 
+.turnBanner__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .turnBanner span {
   display: inline-flex;
   align-items: center;
@@ -164,6 +172,22 @@ button {
   font-size: 0.8rem;
   letter-spacing: 0.03em;
   transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.turnHostButton {
+  border: 1px solid rgba(116, 214, 255, 0.2);
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: rgba(8, 18, 28, 0.9);
+  color: #d8eef9;
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.turnHostButton:hover:not(:disabled) {
+  border-color: rgba(116, 214, 255, 0.38);
+  background: rgba(116, 214, 255, 0.14);
 }
 
 .turnBackButton:hover:not(:disabled) {
