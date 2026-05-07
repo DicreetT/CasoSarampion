@@ -51,7 +51,7 @@ export const HostControls = ({ session }: { session: any }) => {
     };
   }, [session.code, session.current_turn]);
 
-  const advanceTurn = async () => {
+  const closeVoting = async () => {
     setAdvancing(true);
     setError(null);
     try {
@@ -185,11 +185,11 @@ export const HostControls = ({ session }: { session: any }) => {
         {error && <div className="hostError">{error}</div>}
         
         {session.status === "lobby" ? (
-          <motion.button type="button" className="hostButton" onClick={advanceTurn} disabled={advancing} whileTap={{ scale: 0.985 }}>
+          <motion.button type="button" className="hostButton" onClick={closeVoting} disabled={advancing} whileTap={{ scale: 0.985 }}>
             {advancing ? "Procesando..." : "Empezar Juego"}
           </motion.button>
         ) : session.turn_phase === "voting" ? (
-          <motion.button type="button" className="hostButton" onClick={advanceTurn} disabled={advancing} whileTap={{ scale: 0.985 }}>
+          <motion.button type="button" className="hostButton" onClick={closeVoting} disabled={advancing} whileTap={{ scale: 0.985 }}>
             {advancing ? "Procesando..." : "Cerrar Votaciones"}
           </motion.button>
         ) : session.turn_phase === "closed" ? (
