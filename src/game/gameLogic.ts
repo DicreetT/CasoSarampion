@@ -222,7 +222,7 @@ export const createInitialState = (): GameState => ({
   stats: {
     life: 4,
     complications: 0,
-    fever: 2,
+    fever: 1,
   },
   hidden: {
     outbreakRisk: 0,
