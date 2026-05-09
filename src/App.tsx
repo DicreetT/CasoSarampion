@@ -947,63 +947,80 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
     choices.filter((item) => item.kind !== "suspension" && !(item.kind === "action" && item.key === "suspender"));
 
   const updateMedicationChoice = (key: MedicationKey) => {
-    const medicationPreview = getActionOutcomePreview({
-      kind: "medication",
-      key,
-      doseMg: state.selectedDoseMg,
-      everyHours: state.selectedDoseMode === "single" ? "" : state.selectedDoseEveryHours,
-      doseMode: state.selectedDoseMode,
-      route: state.selectedAdministrationRoute,
-    });
+    const suspensionIndex = selectedChoices.findIndex((item) => item.kind === "suspension");
+    const existingChoiceIndex = selectedChoices.findIndex((item) => item.kind === "medication" && item.key === key);
+    const updatedSuspensionChoice: TurnChoice = { kind: "suspension", key };
 
-    setSelectedChoices((current) => {
-      const suspensionIndex = current.findIndex((item) => item.kind === "suspension");
-      const existingMedicationIndex = current.findIndex((item) => item.kind === "medication");
-      const updatedMedicationChoice = buildMedicationChoice(state, key);
-      const updatedSuspensionChoice: TurnChoice = { kind: "suspension", key };
-
-      if (suspenderMode) {
-        if (suspensionIndex >= 0) {
-          const updated = [...current];
-          updated[suspensionIndex] = updatedSuspensionChoice;
-          setPreviewText(`Se suspende ${medicationLabelByKey.get(key) ?? key}.`);
-          return updated;
+    if (suspenderMode) {
+      if (suspensionIndex >= 0) {
+        const updated = [...selectedChoices];
+        if (updated[suspensionIndex].key === key) {
+          updated.splice(suspensionIndex, 1);
+          setPreviewText("Selecciona qué medicación suspender.");
+          setSelectedChoices(updated);
+          return;
         }
-
-        if (existingMedicationIndex >= 0) {
-          const updated = [...current];
-          updated[existingMedicationIndex] = updatedSuspensionChoice;
-          setPreviewText(`Se suspende ${medicationLabelByKey.get(key) ?? key}.`);
-          return updated;
-        }
-
-        if (current.length >= 2) {
-          setPreviewText("Máximo 2 decisiones por turno.");
-          return current;
-        }
-
+        updated[suspensionIndex] = updatedSuspensionChoice;
         setPreviewText(`Se suspende ${medicationLabelByKey.get(key) ?? key}.`);
-        return [...current, updatedSuspensionChoice];
+        setSelectedChoices(updated);
+        return;
       }
 
-      if (existingMedicationIndex >= 0) {
-        const updated = [...current];
-        updated[existingMedicationIndex] = updatedMedicationChoice;
-        setPreviewText(medicationPreview);
-        return updated;
-      }
-
-      if (current.length >= 2) {
+      if (selectedChoices.length >= 2) {
         setPreviewText("Máximo 2 decisiones por turno.");
-        return current;
+        return;
       }
 
-      setPreviewText(medicationPreview);
-      return [...current, updatedMedicationChoice];
-    });
-    if (!suspenderMode) {
-      setState((current) => ({ ...current, selectedMedication: key }));
+      setPreviewText(`Se suspende ${medicationLabelByKey.get(key) ?? key}.`);
+      setSelectedChoices([...selectedChoices, updatedSuspensionChoice]);
+      return;
     }
+
+    if (existingChoiceIndex >= 0) {
+      if (state.selectedMedication === key) {
+        const updated = [...selectedChoices];
+        updated.splice(existingChoiceIndex, 1);
+        const remainingMed = updated.find(c => c.kind === "medication") as MedicationChoice | undefined;
+        
+        if (remainingMed) {
+          setPreviewText(getActionOutcomePreview(remainingMed));
+          setState((curr) => ({
+            ...curr,
+            selectedMedication: remainingMed.key,
+            selectedDoseMg: remainingMed.doseMg,
+            selectedDoseEveryHours: remainingMed.doseMode === "single" ? "8" : remainingMed.everyHours || "8",
+            selectedDoseMode: remainingMed.doseMode,
+            selectedAdministrationRoute: remainingMed.route
+          }));
+        } else {
+          setPreviewText("Medicación deseleccionada.");
+          setState((curr) => ({ ...curr, selectedMedication: null }));
+        }
+        setSelectedChoices(updated);
+      } else {
+        const focusChoice = selectedChoices[existingChoiceIndex] as MedicationChoice;
+        setPreviewText(getActionOutcomePreview(focusChoice));
+        setState((curr) => ({
+          ...curr,
+          selectedMedication: key,
+          selectedDoseMg: focusChoice.doseMg,
+          selectedDoseEveryHours: focusChoice.doseMode === "single" ? "8" : focusChoice.everyHours || "8",
+          selectedDoseMode: focusChoice.doseMode,
+          selectedAdministrationRoute: focusChoice.route
+        }));
+      }
+      return;
+    }
+
+    if (selectedChoices.length >= 2) {
+      setPreviewText("Máximo 2 decisiones por turno.");
+      return;
+    }
+
+    const updatedMedicationChoice = buildMedicationChoice(state, key);
+    setPreviewText(getActionOutcomePreview(updatedMedicationChoice));
+    setSelectedChoices([...selectedChoices, updatedMedicationChoice]);
+    setState((curr) => ({ ...curr, selectedMedication: key }));
   };
 
   const setDoseMode = (mode: DoseScheduleMode) => {
@@ -1015,7 +1032,7 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
 
       if (current.selectedMedication) {
         setSelectedChoices((choices) =>
-          choices.map((choice) => (choice.kind === "medication" ? syncMedicationChoice(choice, next) : choice)),
+          choices.map((choice) => (choice.kind === "medication" && choice.key === current.selectedMedication ? syncMedicationChoice(choice, next) : choice)),
         );
         setPreviewText(
           getActionOutcomePreview({
@@ -1042,7 +1059,7 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
 
       if (current.selectedMedication) {
         setSelectedChoices((choices) =>
-          choices.map((choice) => (choice.kind === "medication" ? syncMedicationChoice(choice, next) : choice)),
+          choices.map((choice) => (choice.kind === "medication" && choice.key === current.selectedMedication ? syncMedicationChoice(choice, next) : choice)),
         );
         setPreviewText(
           getActionOutcomePreview({
@@ -1462,7 +1479,7 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
                         if (!suspenderMode) {
                           setSelectedChoices((current) =>
                             current.map((choice) =>
-                              choice.kind === "medication"
+                              choice.kind === "medication" && choice.key === state.selectedMedication
                                 ? {
                                     ...choice,
                                     doseMg: dose,
@@ -1531,7 +1548,7 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
                           if (!suspenderMode) {
                             setSelectedChoices((current) =>
                               current.map((choice) =>
-                                choice.kind === "medication"
+                                choice.kind === "medication" && choice.key === state.selectedMedication
                                   ? {
                                       ...choice,
                                       doseMg: state.selectedDoseMg,
