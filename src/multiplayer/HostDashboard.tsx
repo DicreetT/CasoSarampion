@@ -85,19 +85,6 @@ export const HostControls = ({ session }: { session: any }) => {
     setAdvancing(true);
     setError(null);
     try {
-      if (session.status === "lobby") {
-        // Just start the game
-        const { error: updateError } = await supabase!
-          .from("game_sessions")
-          .update({
-            status: "playing",
-            game_state: gameState
-          })
-          .eq("code", session.code);
-        if (updateError) throw updateError;
-        return;
-      }
-
       // In a real scenario, the host would select the top 2 votes.
       // For now, let's extract choices from the votes.
       // Votes store choices as JSON strings in choice_a and choice_b.
@@ -165,6 +152,32 @@ export const HostControls = ({ session }: { session: any }) => {
         turn_phase: "voting",
         game_state: advancedState
       }).eq("code", session.code);
+    } finally {
+      setAdvancing(false);
+    }
+  };
+
+  const startInstructions = async () => {
+    setAdvancing(true);
+    setError(null);
+    try {
+      const { error } = await supabase!.from("game_sessions").update({ status: "instructions" }).eq("code", session.code);
+      if (error) throw error;
+    } catch (e: any) {
+      setError(e.message || "Error al pasar a instrucciones.");
+    } finally {
+      setAdvancing(false);
+    }
+  };
+
+  const startGame = async () => {
+    setAdvancing(true);
+    setError(null);
+    try {
+      const { error } = await supabase!.from("game_sessions").update({ status: "playing", game_state: gameState }).eq("code", session.code);
+      if (error) throw error;
+    } catch (e: any) {
+      setError(e.message || "Error al iniciar el juego.");
     } finally {
       setAdvancing(false);
     }
@@ -246,7 +259,11 @@ export const HostControls = ({ session }: { session: any }) => {
         {error && <div className="hostError">{error}</div>}
         
         {session.status === "lobby" ? (
-          <motion.button type="button" className="hostButton" onClick={closeVoting} disabled={advancing} whileTap={{ scale: 0.985 }}>
+          <motion.button type="button" className="hostButton" onClick={startInstructions} disabled={advancing} whileTap={{ scale: 0.985 }}>
+            {advancing ? "Procesando..." : "Pasar a instrucciones"}
+          </motion.button>
+        ) : session.status === "instructions" ? (
+          <motion.button type="button" className="hostButton" onClick={startGame} disabled={advancing} whileTap={{ scale: 0.985 }}>
             {advancing ? "Procesando..." : "Empezar Juego"}
           </motion.button>
         ) : session.turn_phase === "voting" ? (
