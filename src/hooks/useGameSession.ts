@@ -10,10 +10,11 @@ export function useGameSession(
   normalizeGameState: (state: GameState) => GameState,
   setSelectedChoices: (choices: any[]) => void,
   setPreviewText: (text: string) => void,
-  setWaitingForHost: (waiting: boolean) => void
+  setWaitingForHost: (waiting: boolean) => void,
+  initialStatus: string = "playing"
 ) {
   const [sessionPhase, setSessionPhase] = useState("voting");
-  const [sessionStatus, setSessionStatus] = useState("playing");
+  const [sessionStatus, setSessionStatus] = useState(initialStatus);
   const [playerCount, setPlayerCount] = useState(0);
   const [voteCount, setVoteCount] = useState(0);
 

@@ -31,6 +31,8 @@ import { InstructionsContent } from "./components/InstructionsScreen";
 import { ClinicalHistoryModal } from "./components/ClinicalHistoryModal";
 import { audio } from "./utils/audio";
 import { VitalMonitor } from "./components/VitalMonitor";
+import { useGameSession } from "./hooks/useGameSession";
+import { normalizeGameState } from "./game/normalizeState";
 
 const medicationOptions: Array<{ key: MedicationKey; label: string; help: string }> = [
   { key: "paracetamol", label: "Paracetamol", help: "Antitérmico con ajuste de dosis" },
@@ -258,71 +260,7 @@ const ensureSupabaseAnonymousSession = async () => {
   return finalUserData.user;
 };
 
-const normalizeGameState = (saved: GameState): GameState => {
-  const clampStat = (value: number | undefined, max: number) => Math.max(0, Math.min(max, value ?? 0));
 
-  const migratedStats =
-    saved.turnIndex === 1
-      ? {
-          ...initialState.stats,
-          ...saved.stats,
-          life: Math.min(saved.stats?.life ?? initialState.stats.life, 3),
-          fever: clampStat(Math.max(saved.stats?.fever ?? 0, 3), 3),
-          complications: clampStat(Math.max(saved.stats?.complications ?? 0, 2), 3),
-        }
-      : saved.turnIndex >= 2
-      ? {
-          ...initialState.stats,
-          ...saved.stats,
-          complications: clampStat(
-            Math.max(saved.stats?.complications ?? 0, saved.flags?.corticoidesSuspended ? 2 : 3),
-            3,
-          ),
-          fever: clampStat(saved.stats?.fever, 3),
-        }
-      : {
-          ...initialState.stats,
-          ...saved.stats,
-          complications: clampStat(saved.stats?.complications, 3),
-          fever: clampStat(saved.stats?.fever, 3),
-        };
-
-  const migratedFlags =
-    saved.turnIndex >= 2
-      ? {
-          ...initialState.flags,
-          ...saved.flags,
-          turn2AntibioticApplied: true,
-        }
-      : { ...initialState.flags, ...saved.flags };
-
-  const migratedVitals =
-    saved.turnIndex === 1
-      ? {
-          ...initialState.vitals,
-          ...saved.vitals,
-          temperature: Math.max(saved.vitals?.temperature ?? initialState.vitals.temperature, 39.3),
-        }
-      : { ...initialState.vitals, ...saved.vitals };
-
-  return {
-    ...initialState,
-    ...saved,
-    stats: migratedStats,
-    vitals: migratedVitals,
-    hidden: { ...initialState.hidden, ...saved.hidden },
-    flags: migratedFlags,
-    eventLog: saved.eventLog ?? [],
-    selectedDoseMg: saved.selectedMedication ? saved.selectedDoseMg : "0",
-    selectedDoseEveryHours: saved.selectedMedication ? saved.selectedDoseEveryHours ?? initialState.selectedDoseEveryHours : initialState.selectedDoseEveryHours,
-    selectedDoseMode: saved.selectedMedication ? saved.selectedDoseMode ?? initialState.selectedDoseMode : initialState.selectedDoseMode,
-    selectedAdministrationRoute: saved.selectedMedication
-      ? saved.selectedAdministrationRoute ?? initialState.selectedAdministrationRoute
-      : initialState.selectedAdministrationRoute,
-    narrative: saved.narrative ?? initialState.narrative,
-    outcome: saved.outcome ?? null,
-  };
-};
 
 const tapFeedback = {
   whileTap: { scale: 0.985 },
@@ -729,7 +667,19 @@ const HostLobby = () => {
   );
 };
 
-function GameModeApp({ sessionCode, player, hostSession, isHostView }: { sessionCode?: string; player?: any; hostSession?: any; isHostView?: boolean }) {
+export function GameModeApp({
+  sessionCode,
+  isHostView,
+  hostSession,
+  player,
+  initialStatus,
+}: {
+  sessionCode?: string;
+  isHostView?: boolean;
+  hostSession?: any;
+  player?: any;
+  initialStatus?: string;
+}) {
   const [state, setState] = useState<GameState>(() => {
     if (isHostView && hostSession?.game_state) {
       return normalizeGameState(hostSession.game_state);
@@ -746,126 +696,19 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
     "Selecciona una intervención del pocket médico y aplica la decisión para avanzar al siguiente turno.",
   );
   const [waitingForHost, setWaitingForHost] = useState(false);
-  const [sessionPhase, setSessionPhase] = useState("voting");
-  const [playerCount, setPlayerCount] = useState(0);
-  const [voteCount, setVoteCount] = useState(0);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
-  // Sync state for Host
-  const [sessionStatus, setSessionStatus] = useState(hostSession?.status || "playing");
-  useEffect(() => {
-    if (isHostView && hostSession?.game_state) {
-      setState(normalizeGameState(hostSession.game_state));
-      setSessionPhase(hostSession.turn_phase || "voting");
-      setSessionStatus(hostSession.status || "playing");
-    }
-  }, [isHostView, hostSession]);
-
-  // Subscribe to session changes
-  useEffect(() => {
-    if (!sessionCode) return;
-
-    const fetchSession = async () => {
-      const { data } = await supabase!.from("game_sessions").select("*").eq("code", sessionCode).single();
-      if (data) {
-        setSessionPhase(data.turn_phase || "voting");
-        if (data.current_turn > state.turnIndex) {
-          let next = { ...state };
-          while (next.turnIndex < data.current_turn && !next.finished) {
-            next = advanceTurn(next);
-          }
-          setState(next);
-        } else if (data.current_turn < state.turnIndex) {
-          // Player's local storage is from an old session that was further ahead.
-          // Reset to match the host's current state.
-          let next = normalizeGameState(data.game_state || initialState);
-          while (next.turnIndex < data.current_turn && !next.finished) {
-            next = advanceTurn(next);
-          }
-          setState(next);
-        } else if (data.current_turn === 0 && state.turnIndex === 0) {
-          setState(normalizeGameState(data.game_state || initialState));
-        }
-      }
-    };
-    fetchSession();
-
-    const sub = supabase!
-      .channel(`game_sessions-${sessionCode}`)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "game_sessions", filter: `code=eq.${sessionCode}` }, (payload) => {
-        if (payload.new) {
-          setSessionPhase(payload.new.turn_phase || "voting");
-          if (payload.new.status) {
-            setSessionStatus(payload.new.status);
-          }
-
-          if (isHostView) {
-            if (payload.new.game_state) {
-              setState(normalizeGameState(payload.new.game_state));
-            }
-          } else {
-            const hostTurn = payload.new.current_turn;
-            setState((curr) => {
-              if (hostTurn > curr.turnIndex) {
-                let next = { ...curr };
-                while (next.turnIndex < hostTurn && !next.finished) {
-                  next = advanceTurn(next);
-                }
-                setWaitingForHost(false); // Unblock for next turn
-                setSelectedChoices([]);
-                setPreviewText(next.narrative);
-                return next;
-              } else if (hostTurn < curr.turnIndex) {
-                // Host restarted the session or went backwards
-                let next = normalizeGameState(payload.new.game_state || initialState);
-                while (next.turnIndex < hostTurn && !next.finished) {
-                  next = advanceTurn(next);
-                }
-                setWaitingForHost(false);
-                setSelectedChoices([]);
-                setPreviewText(next.narrative);
-                return next;
-              }
-              return curr;
-            });
-          }
-        }
-
-      })
-      .subscribe();
-
-    let pSub: any;
-    let vSub: any;
-
-    if (!isHostView) {
-      const fetchCounts = async () => {
-        const [{ count: pCount }, { count: vCount }] = await Promise.all([
-          supabase!.from("session_players").select("*", { count: "exact", head: true }).eq("session_code", sessionCode),
-          supabase!.from("session_votes").select("*", { count: "exact", head: true }).eq("session_code", sessionCode).eq("turn_index", state.turnIndex)
-        ]);
-        setPlayerCount(pCount || 0);
-        setVoteCount(vCount || 0);
-      };
-      
-      fetchCounts();
-
-      pSub = supabase!
-        .channel(`player-counts-${sessionCode}`)
-        .on("postgres_changes", { event: "*", schema: "public", table: "session_players", filter: `session_code=eq.${sessionCode}` }, fetchCounts)
-        .subscribe();
-        
-      vSub = supabase!
-        .channel(`vote-counts-${sessionCode}`)
-        .on("postgres_changes", { event: "*", schema: "public", table: "session_votes", filter: `session_code=eq.${sessionCode}` }, fetchCounts)
-        .subscribe();
-    }
-
-    return () => {
-      supabase!.removeChannel(sub);
-      if (pSub) supabase!.removeChannel(pSub);
-      if (vSub) supabase!.removeChannel(vSub);
-    };
-  }, [sessionCode, isHostView, state.turnIndex]);
+  const { sessionPhase, sessionStatus, playerCount, voteCount } = useGameSession(
+    sessionCode,
+    isHostView,
+    state,
+    setState,
+    normalizeGameState,
+    setSelectedChoices,
+    setPreviewText,
+    setWaitingForHost,
+    initialStatus
+  );
 
   useEffect(() => {
     saveGameState(state);
@@ -1382,6 +1225,17 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
           </div>
 
           <div className="patientCenter" style={{ display: "flex", flexDirection: "column", gap: "16px", padding: "16px" }}>
+            <div className="patientStage__body" style={{ flex: 1, position: "relative", minHeight: "350px", borderRadius: "18px", overflow: "hidden", border: "1px solid rgba(123, 255, 138, 0.04)", background: "radial-gradient(circle at center, rgba(123, 255, 138, 0.1), transparent 48%), linear-gradient(180deg, rgba(5, 10, 15, 0.7), rgba(3, 7, 10, 0.82))" }}>
+              {contagionActive && (
+                <div className="contagionBackdrop" style={{ opacity: contagionOpacity, position: "absolute", inset: 0, zIndex: 1, pointerEvents: "none" }}>
+                  <span className="contagionSilhouette contagionSilhouette--one" />
+                  <span className="contagionSilhouette contagionSilhouette--two" />
+                  <span className="contagionSilhouette contagionSilhouette--three" />
+                </div>
+              )}
+              <PatientIllustration state={state} />
+            </div>
+
             <VitalMonitor state={state} />
           </div>
 
@@ -1761,7 +1615,7 @@ export default function App() {
 
   if (mode === "host") {
     if (hostSession) {
-      return <GameModeApp sessionCode={sessionCode || ""} hostSession={hostSession} isHostView={true} />;
+      return <GameModeApp sessionCode={sessionCode || ""} hostSession={hostSession} isHostView={true} initialStatus={hostSession.status} />;
     }
     return <HostLobby />;
   }
@@ -1794,9 +1648,9 @@ export default function App() {
       );
     }
 
-    return <GameModeApp sessionCode={sessionCode} player={player} />;
+    return <GameModeApp sessionCode={sessionCode} player={player} initialStatus={playerSession?.status} />;
   }
 
   // Fallback to offline/solo mode if no session in URL
-  return <GameModeApp />;
+  return <GameModeApp initialStatus="playing" />;
 }
