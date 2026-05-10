@@ -144,6 +144,7 @@ const applyThresholdPenalties = (previousStats: Stats, stats: Stats, turnIndex?:
     } else {
       messages.push("La fiebre llena su barra, pero en el cierre ya no compromete la vida.");
     }
+    nextStats.fever = 0;
   }
 
   if (previousStats.complications < MAX_COMPLICATIONS && nextStats.complications >= MAX_COMPLICATIONS) {
@@ -153,6 +154,7 @@ const applyThresholdPenalties = (previousStats: Stats, stats: Stats, turnIndex?:
     } else {
       messages.push("Las complicaciones llenan su barra, pero el cierre ya no resta vida.");
     }
+    nextStats.complications = 0;
   }
 
   return { stats: nextStats, messages };
