@@ -63,8 +63,12 @@ export function useGameSession(
             setState((curr) => {
               if (hostTurn > curr.turnIndex) {
                 let next = { ...curr };
-                while (next.turnIndex < hostTurn && !next.finished) {
-                  next = advanceTurn(next);
+                while (next.turnIndex < hostTurn) {
+                  if (next.finished || next.stats.life <= 0) {
+                    next = { ...next, turnIndex: next.turnIndex + 1 };
+                  } else {
+                    next = advanceTurn(next);
+                  }
                 }
                 setWaitingForHost(false);
                 setSelectedChoices([]);
@@ -72,8 +76,12 @@ export function useGameSession(
                 return next;
               } else if (hostTurn < curr.turnIndex) {
                 let next = normalizeGameState(payload.new.game_state || createInitialState());
-                while (next.turnIndex < hostTurn && !next.finished) {
-                  next = advanceTurn(next);
+                while (next.turnIndex < hostTurn) {
+                  if (next.finished || next.stats.life <= 0) {
+                    next = { ...next, turnIndex: next.turnIndex + 1 };
+                  } else {
+                    next = advanceTurn(next);
+                  }
                 }
                 setWaitingForHost(false);
                 setSelectedChoices([]);

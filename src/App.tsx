@@ -1034,18 +1034,31 @@ export function GameModeApp({
       }
       
       // Apply the choices locally to see the patient's reaction
-      const next = applyChoices(state, finalChoices);
-      setTurnHistory((current) => [...current, state]);
-      setState({
-        ...next,
-        selectedMedication: null,
-        selectedDoseMg: "0",
-        selectedDoseEveryHours: initialState.selectedDoseEveryHours,
-        selectedDoseMode: initialState.selectedDoseMode,
-        selectedAdministrationRoute: initialState.selectedAdministrationRoute,
-      });
-      setSelectedChoices([]);
-      setPreviewText(next.narrative);
+      if (!isFinished) {
+        const next = applyChoices(state, finalChoices);
+        setTurnHistory((current) => [...current, state]);
+        setState({
+          ...next,
+          selectedMedication: null,
+          selectedDoseMg: "0",
+          selectedDoseEveryHours: initialState.selectedDoseEveryHours,
+          selectedDoseMode: initialState.selectedDoseMode,
+          selectedAdministrationRoute: initialState.selectedAdministrationRoute,
+        });
+        setSelectedChoices([]);
+        setPreviewText(next.narrative);
+      } else {
+        setState({
+          ...state,
+          selectedMedication: null,
+          selectedDoseMg: "0",
+          selectedDoseEveryHours: initialState.selectedDoseEveryHours,
+          selectedDoseMode: initialState.selectedDoseMode,
+          selectedAdministrationRoute: initialState.selectedAdministrationRoute,
+        });
+        setSelectedChoices([]);
+        setPreviewText("Tu paciente ha fallecido, pero tu recomendación ha sido enviada al Host.");
+      }
       return;
     }
 
@@ -1527,7 +1540,7 @@ export function GameModeApp({
                   type="button"
                   className="applyDecisionButton"
                   onClick={submitChoice}
-                  disabled={isFinished || waitingForHost || sessionPhase !== "voting"}
+                  disabled={waitingForHost || sessionPhase !== "voting" || (!sessionCode && isFinished)}
                   {...tapFeedback}
                 >
                   {waitingForHost ? "ESPERANDO AL HOST..." : "APLICAR DECISIÓN →"}
