@@ -137,10 +137,9 @@ const applyThresholdPenalties = (previousStats: Stats, stats: Stats, turnIndex?:
   const preventLifeLoss = typeof turnIndex === "number" && turnIndex >= 6;
 
   if (previousStats.fever < MAX_FEVER && nextStats.fever >= MAX_FEVER) {
-    nextStats.complications = clamp(nextStats.complications + 2, 0, MAX_COMPLICATIONS);
     if (!preventLifeLoss) {
       nextStats.life = clamp(nextStats.life - 1, 0, 4);
-      messages.push("La fiebre llena su barra y arrastra más complicaciones.");
+      messages.push("La fiebre llena su barra y cuesta un punto de vida.");
     } else {
       messages.push("La fiebre llena su barra, pero en el cierre ya no compromete la vida.");
     }
@@ -638,6 +637,11 @@ const applyTurnPressure = (state: GameState) => {
   const hidden = { ...next.hidden };
   const vitals = { ...next.vitals };
   const turn = getTurn(next).id;
+
+  if (turn === 0) {
+    stats.fever = clamp(stats.fever + 2, 0, MAX_FEVER);
+    vitals.temperature = Math.max(vitals.temperature, 39.5);
+  }
 
   if (turn === 1) {
     if (next.flags.paracetamolGiven) {
