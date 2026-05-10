@@ -136,7 +136,7 @@ const applyThresholdPenalties = (previousStats: Stats, stats: Stats, turnIndex?:
   const messages: string[] = [];
   const preventLifeLoss = typeof turnIndex === "number" && turnIndex >= 6;
 
-  if (previousStats.fever < MAX_FEVER && nextStats.fever >= MAX_FEVER) {
+  if (nextStats.fever >= MAX_FEVER) {
     if (!preventLifeLoss) {
       nextStats.life = clamp(nextStats.life - 1, 0, 4);
       messages.push("La fiebre llena su barra y cuesta un punto de vida.");
@@ -146,7 +146,7 @@ const applyThresholdPenalties = (previousStats: Stats, stats: Stats, turnIndex?:
     nextStats.fever = 0;
   }
 
-  if (previousStats.complications < MAX_COMPLICATIONS && nextStats.complications >= MAX_COMPLICATIONS) {
+  if (nextStats.complications >= MAX_COMPLICATIONS) {
     if (!preventLifeLoss) {
       nextStats.life = clamp(nextStats.life - 1, 0, 4);
       messages.push("Las complicaciones llenan su barra y pasan factura.");
@@ -438,10 +438,6 @@ const applyMedication = (state: GameState, doseMg: number) => {
       narrative = "No hay un fármaco activo seleccionado.";
   }
 
-  const threshold = applyThresholdPenalties(previousStats, stats, turn);
-  stats = threshold.stats;
-  narrative = [narrative, ...threshold.messages].filter(Boolean).join(" ");
-
   next.stats = stats;
   next.vitals = vitals;
   addLog(next, narrative);
@@ -484,10 +480,6 @@ const applySuspension = (state: GameState, medication: MedicationKey) => {
     default:
       narrative = "La medicación suspendida no cambia mucho el caso.";
   }
-
-  const threshold = applyThresholdPenalties(previousStats, stats, turn);
-  stats = threshold.stats;
-  narrative = [narrative, ...threshold.messages].filter(Boolean).join(" ");
 
   next.stats = stats;
   addLog(next, narrative);
@@ -570,10 +562,6 @@ const applyAction = (state: GameState, action: ActionKey) => {
       break;
   }
 
-  const threshold = applyThresholdPenalties(previousStats, stats, turn);
-  stats = threshold.stats;
-  narrative = [narrative, ...threshold.messages].filter(Boolean).join(" ");
-
   next.stats = stats;
   next.vitals = vitals;
   addLog(next, narrative);
@@ -619,10 +607,6 @@ const applySupport = (state: GameState, support: SupportKey) => {
       narrative = "La dieta blanda acompaña, pero no altera por sí sola la historia clínica.";
       break;
   }
-
-  const threshold = applyThresholdPenalties(previousStats, stats, turn);
-  stats = threshold.stats;
-  narrative = [narrative, ...threshold.messages].filter(Boolean).join(" ");
 
   next.stats = stats;
   next.vitals = vitals;
@@ -701,11 +685,11 @@ const applyTurnPressure = (state: GameState) => {
   next.stats = stats;
   next.hidden = hidden;
   next.vitals = vitals;
-  return next;
+  return { next, messages: threshold.messages };
 };
 
 export const advanceTurn = (state: GameState) => {
-  const afterPressure = applyTurnPressure(state);
+  const { next: afterPressure, messages: pressureMessages } = applyTurnPressure(state);
   if (afterPressure.stats.life <= 0) {
     return {
       ...afterPressure,
@@ -728,7 +712,7 @@ export const advanceTurn = (state: GameState) => {
   progressed.visualState = getVisualState(progressed);
 
   const entryPreviousStats = { ...progressed.stats };
-  const entryMessages: string[] = [];
+  const entryMessages: string[] = [...pressureMessages];
 
   if (progressed.turnIndex === 2 && !progressed.flags.turn2AntibioticApplied) {
     progressed.stats.complications = clamp(progressed.stats.complications + 2, 0, MAX_COMPLICATIONS);
@@ -809,6 +793,14 @@ export const applyChoices = (state: GameState, choices: TurnChoice[]) => {
 
     if (!turnZeroProtected) {
       next.hidden.outbreakRisk = clamp(next.hidden.outbreakRisk + 3, 0, 4);
+    }
+  }
+
+  if (state.turnIndex === 1) {
+    if (!next.flags.paracetamolGiven) {
+      next.stats.fever = clamp(next.stats.fever + 2, 0, MAX_FEVER);
+      next.vitals.temperature = Math.max(next.vitals.temperature, 39.5);
+      next.narrative = [next.narrative, "La temperatura del paciente sube y la tos continua al no recibir una dosis útil de paracetamol."].filter(Boolean).join(" ");
     }
   }
 
