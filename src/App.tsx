@@ -391,15 +391,19 @@ const PatientIllustration = ({ state }: { state: GameState }) => {
   const healthyImage = `${assetBase}healthy.png`;
   const [imageSrc, setImageSrc] = useState(normalImage);
   const getPatientImage = () => {
+    if (state.finished) {
+      if (state.outcome?.id === "brote_hospitalario" || state.outcome?.id === "complicacion_grave") return `${assetBase}finalconbrote.png`;
+      if (state.outcome?.id === "manejo_excellent" || state.outcome?.id === "manejo_incompleto") return `${assetBase}finalsinbrote.png`;
+      return `${assetBase}finalconbrote.png`;
+    }
     if (state.turnIndex === 0) return normalImage;
     if (state.turnIndex === 1) return feverImage;
     if (state.turnIndex === 2) return r1Image;
     if (state.turnIndex === 3) return dehydratedImage;
     if (state.turnIndex === 4 || state.visualState === "respiratory distress") return respiratoryDistressImage;
     if (state.turnIndex === 5) return convulsionImage;
-    if (state.turnIndex === 6) return healthyImage;
-    if (state.stats.life <= 1) return `${assetBase}critical.png`;
-    if (state.stats.fever >= 3) return `${assetBase}fever.png`;
+    if (state.stats.life <= 1) return convulsionImage;
+    if (state.stats.fever >= 3) return feverImage;
     return normalImage;
   };
   const breathingMotion =
@@ -417,6 +421,8 @@ const PatientIllustration = ({ state }: { state: GameState }) => {
     state.stats.complications,
     state.stats.fever,
     state.visualState,
+    state.finished,
+    state.outcome?.id,
     r1Image,
     dehydratedImage,
     respiratoryDistressImage,

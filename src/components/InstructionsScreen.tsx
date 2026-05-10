@@ -17,7 +17,6 @@ export const InstructionsContent = () => (
     <ol style={{ paddingLeft: "1.5rem", marginBottom: "1rem" }}>
       <li style={{ marginBottom: "0.5rem" }}>Lee el caso clínico.</li>
       <li style={{ marginBottom: "0.5rem" }}>Selecciona <strong>2 items</strong> del bolsillo médico entre medicamentos, acciones y medidas de soporte.</li>
-      <li style={{ marginBottom: "0.5rem" }}>Si eliges medicamento: introduce la dosis.</li>
       <li style={{ marginBottom: "0.5rem" }}>Envía tu decisión antes de que el host cierre la votación.</li>
     </ol>
 

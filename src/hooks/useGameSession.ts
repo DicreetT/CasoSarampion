@@ -24,6 +24,7 @@ export function useGameSession(
       const { data } = await supabase!.from("game_sessions").select("*").eq("code", sessionCode).single();
       if (data) {
         setSessionPhase(data.turn_phase || "voting");
+        if (data.status) setSessionStatus(data.status);
         if (data.current_turn > state.turnIndex) {
           let next = { ...state };
           while (next.turnIndex < data.current_turn && !next.finished) {
@@ -116,7 +117,7 @@ export function useGameSession(
       if (pSub) supabase!.removeChannel(pSub);
       if (vSub) supabase!.removeChannel(vSub);
     };
-  }, [sessionCode, isHostView, state.turnIndex, normalizeGameState, setPreviewText, setSelectedChoices, setState, setWaitingForHost]);
+  }, [sessionCode, isHostView, state.turnIndex, normalizeGameState, setPreviewText, setSelectedChoices, setState, setWaitingForHost, setSessionStatus, setSessionPhase]);
 
   return { sessionPhase, setSessionPhase, sessionStatus, setSessionStatus, playerCount, voteCount };
 }
