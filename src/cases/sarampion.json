@@ -1,0 +1,51 @@
+[
+  {
+    "id": 0,
+    "label": "Coffee break",
+    "scene": "Te llaman mientras tomas café: paciente de 21 años con fiebre, tos, coriza, conjuntivitis y exantema.",
+    "focus": "El primer gesto clínico importa más que la prisa.",
+    "correctAnswer": "EPIs, Aislamiento respiratorio, y Paracetamol a dosis correcta."
+  },
+  {
+    "id": 1,
+    "label": "Fiebre 39.5 C",
+    "scene": "La temperatura del paciente sube y la tos continua.",
+    "focus": "El control sintomático puede ayudar, pero hay que evitar complicaciones.",
+    "correctAnswer": "Paracetamol (500-1000 mg/8h VO). Hidratación IV, Vitamina A, EPIs o Aislamiento respiratorio también son correctas."
+  },
+  {
+    "id": 2,
+    "label": "R1 pauta corticoides",
+    "scene": "Le he puesto corticoides para controlar la inflamación y el paciente muestra mejoria.",
+    "focus": "Aquí la duda antiinflamatoria suele traducirse en más complicaciones.",
+    "correctAnswer": "Suspender tratamiento (Corticoides) y Paracetamol a dosis correcta. Hidratación, Vitamina A y reposo también son opciones válidas."
+  },
+  {
+    "id": 3,
+    "label": "Diarrea y deshidratación",
+    "scene": "La ingesta cae, la mucosa se seca y el paciente pierde volumen.",
+    "focus": "La hidratación correcta cambia el pronóstico.",
+    "correctAnswer": "Hidratación IV o Hidratación oral."
+  },
+  {
+    "id": 4,
+    "label": "Deterioro respiratorio",
+    "scene": "Baja la SpO2 y aumenta la frecuencia respiratoria.",
+    "focus": "Aquí importa reconocer gravedad, oxígeno y escalada de cuidados.",
+    "correctAnswer": "Oxígeno. Vitamina A y reposo también son opciones correctas."
+  },
+  {
+    "id": 5,
+    "label": "Convulsión / encefalitis",
+    "scene": "Aparece un episodio convulsivo y el equipo sospecha afectación neurológica.",
+    "focus": "La protección de la vía aérea y el manejo de crisis son prioritarios.",
+    "correctAnswer": "Ingreso en UCI y Lorazepam (3-4 mg IV en dosis única)."
+  },
+  {
+    "id": 6,
+    "label": "Alta ambulatoria y cierre",
+    "scene": "La mejoría permite organizar el alta ambulatoria y cerrar el circuito de contactos.",
+    "focus": "El cierre final premia una evolución bien contenida y una notificación completa.",
+    "correctAnswer": "Dar de alta, identificar contactos y notificar a salud pública."
+  }
+]

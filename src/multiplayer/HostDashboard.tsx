@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { supabase } from "../lib/supabase";
 import { applyChoices, createInitialState, advanceTurn, getTurn, type GameState, type TurnChoice } from "../game/gameLogic";
 
-export const HostControls = ({ session }: { session: any }) => {
+export const HostControls = ({ session, onOpenHistory }: { session: any; onOpenHistory?: () => void }) => {
   const [players, setPlayers] = useState<any[]>([]);
   const [votes, setVotes] = useState<any[]>([]);
   const [advancing, setAdvancing] = useState(false);
@@ -185,9 +185,16 @@ export const HostControls = ({ session }: { session: any }) => {
 
   return (
     <div className="medicalPocket__title" style={{ display: "flex", flexDirection: "column", gap: "1.5rem", height: "100%" }}>
-      <div>
-        <h2>Host Dashboard</h2>
-        <p style={{ color: "#9ca3af", fontSize: "0.875rem", marginTop: "0.25rem" }}>Sesión: {session.code} | Turno: {session.current_turn} / {gameState.turnIndex}</p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <h2>Host Dashboard</h2>
+          <p style={{ color: "#9ca3af", fontSize: "0.875rem", marginTop: "0.25rem" }}>Sesión: {session.code} | Turno: {session.current_turn} / {gameState.turnIndex}</p>
+        </div>
+        {onOpenHistory && (
+          <button onClick={onOpenHistory} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "8px", padding: "6px 12px", color: "#fff", cursor: "pointer", fontSize: "0.9rem" }}>
+            Ver Expediente
+          </button>
+        )}
       </div>
 
           {session.status === "lobby" && (

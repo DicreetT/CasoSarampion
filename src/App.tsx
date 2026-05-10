@@ -27,6 +27,10 @@ import {
 } from "./services/sessionStore";
 import { PlayerLobby } from "./multiplayer/PlayerLobby";
 import { HostControls } from "./multiplayer/HostDashboard";
+import { InstructionsContent } from "./components/InstructionsScreen";
+import { ClinicalHistoryModal } from "./components/ClinicalHistoryModal";
+import { audio } from "./utils/audio";
+import { VitalMonitor } from "./components/VitalMonitor";
 
 const medicationOptions: Array<{ key: MedicationKey; label: string; help: string }> = [
   { key: "paracetamol", label: "Paracetamol", help: "Antitérmico con ajuste de dosis" },
@@ -326,51 +330,7 @@ const tapFeedback = {
   transition: { duration: 0.18 },
 };
 
-const progressColor = (value: number, max: number) => {
-  const ratio = value / max;
-  if (ratio >= 0.75) return "danger";
-  if (ratio >= 0.45) return "warning";
-  return "safe";
-};
-
-const StatBar = ({
-  icon,
-  label,
-  value,
-  max,
-}: {
-  icon: string;
-  label: string;
-  value: number;
-  max: number;
-}) => {
-  const width = `${Math.max(8, (value / max) * 100)}%`;
-  return (
-    <div className="statBar">
-      <div className="statBar__top">
-        <span className="statBar__label">
-          <span className="statBar__icon" aria-hidden="true">
-            {icon}
-          </span>
-          {label}
-        </span>
-        <strong>
-          {value}/{max}
-        </strong>
-      </div>
-      <div className="statBar__track">
-        <div className={`statBar__fill ${progressColor(value, max)}`} style={{ width }} />
-      </div>
-    </div>
-  );
-};
-
-const VitalPill = ({ label, value, tone = "neutral" }: { label: string; value: string; tone?: string }) => (
-  <div className={`vitalPill ${tone}`}>
-    <span>{label}</span>
-    <strong>{value}</strong>
-  </div>
-);
+// Removed StatBar and VitalPill and progressColor, they are now in VitalMonitor
 
 const choiceId = (choice: TurnChoice) => `${choice.kind}:${choice.key}`;
 
@@ -781,6 +741,9 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
   );
   const [waitingForHost, setWaitingForHost] = useState(false);
   const [sessionPhase, setSessionPhase] = useState("voting");
+  const [playerCount, setPlayerCount] = useState(0);
+  const [voteCount, setVoteCount] = useState(0);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
   // Sync state for Host
   const [sessionStatus, setSessionStatus] = useState(hostSession?.status || "playing");
@@ -865,10 +828,38 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
       })
       .subscribe();
 
+    let pSub: any;
+    let vSub: any;
+
+    if (!isHostView) {
+      const fetchCounts = async () => {
+        const [{ count: pCount }, { count: vCount }] = await Promise.all([
+          supabase!.from("session_players").select("*", { count: "exact", head: true }).eq("session_code", sessionCode),
+          supabase!.from("session_votes").select("*", { count: "exact", head: true }).eq("session_code", sessionCode).eq("turn_index", state.turnIndex)
+        ]);
+        setPlayerCount(pCount || 0);
+        setVoteCount(vCount || 0);
+      };
+      
+      fetchCounts();
+
+      pSub = supabase!
+        .channel(`player-counts-${sessionCode}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: "session_players", filter: `session_code=eq.${sessionCode}` }, fetchCounts)
+        .subscribe();
+        
+      vSub = supabase!
+        .channel(`vote-counts-${sessionCode}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: "session_votes", filter: `session_code=eq.${sessionCode}` }, fetchCounts)
+        .subscribe();
+    }
+
     return () => {
       supabase!.removeChannel(sub);
+      if (pSub) supabase!.removeChannel(pSub);
+      if (vSub) supabase!.removeChannel(vSub);
     };
-  }, [sessionCode, isHostView]);
+  }, [sessionCode, isHostView, state.turnIndex]);
 
   useEffect(() => {
     saveGameState(state);
@@ -877,6 +868,16 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
   useEffect(() => {
     saveTurnHistory(turnHistory);
   }, [turnHistory]);
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (state.stats.life <= 1 && !state.finished) {
+      interval = setInterval(() => {
+        audio.playBeep(2);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [state.stats.life, state.finished]);
 
   useEffect(() => {
     const client = supabase;
@@ -947,6 +948,7 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
     choices.filter((item) => item.kind !== "suspension" && !(item.kind === "action" && item.key === "suspender"));
 
   const updateMedicationChoice = (key: MedicationKey) => {
+    audio.playClick();
     const suspensionIndex = selectedChoices.findIndex((item) => item.kind === "suspension");
     const existingChoiceIndex = selectedChoices.findIndex((item) => item.kind === "medication" && item.key === key);
     const updatedSuspensionChoice: TurnChoice = { kind: "suspension", key };
@@ -1078,6 +1080,7 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
   };
 
   const toggleActionChoice = (key: ActionKey) => {
+    audio.playClick();
     setSelectedChoices((current) => {
       const existing = current.findIndex((item) => item.kind === "action" && item.key === key);
       if (existing >= 0) {
@@ -1122,6 +1125,7 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
   };
 
   const toggleSupportChoice = (key: SupportKey) => {
+    audio.playClick();
     setSelectedChoices((current) => {
       const existing = current.findIndex((item) => item.kind === "support" && item.key === key);
       if (existing >= 0) {
@@ -1141,6 +1145,7 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
   };
 
   const submitChoice = async () => {
+    audio.playStamp();
     if (!selectedChoices.length) {
       setPreviewText("Necesitas elegir al menos una intervención antes de avanzar.");
       return;
@@ -1248,46 +1253,7 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
     },
   ];
 
-  const InstructionsContent = () => (
-    <div style={{ textAlign: "left", color: "#d1d5db", lineHeight: "1.6", maxWidth: "600px", margin: "0 auto", padding: "1rem" }}>
-      <h1 style={{ color: "#4ade80", fontSize: "2rem", marginBottom: "1.5rem", textAlign: "center" }}>🧪 CÓMO JUGAR</h1>
-      
-      <h2 style={{ color: "#38bdf8", fontSize: "1.25rem", marginTop: "1.5rem" }}>Objetivo</h2>
-      <p>Mantener vivo a tu paciente evitando:</p>
-      <ul style={{ paddingLeft: "1.5rem", marginBottom: "1rem" }}>
-        <li>Fiebre</li>
-        <li>Complicaciones</li>
-      </ul>
 
-      <hr style={{ borderColor: "rgba(255,255,255,0.1)", margin: "1.5rem 0" }}/>
-
-      <h2 style={{ color: "#38bdf8", fontSize: "1.25rem" }}>Cada turno:</h2>
-      <ol style={{ paddingLeft: "1.5rem", marginBottom: "1rem" }}>
-        <li style={{ marginBottom: "0.5rem" }}>Lee el caso clínico.</li>
-        <li style={{ marginBottom: "0.5rem" }}>Selecciona <strong>2 items</strong> del bolsillo médico entre medicamentos, acciones y medidas de soporte.</li>
-        <li style={{ marginBottom: "0.5rem" }}>Si eliges medicamento: introduce la dosis.</li>
-        <li style={{ marginBottom: "0.5rem" }}>Envía tu decisión antes de que el host cierre la votación.</li>
-      </ol>
-
-      <hr style={{ borderColor: "rgba(255,255,255,0.1)", margin: "1.5rem 0" }}/>
-
-      <h2 style={{ color: "#facc15", fontSize: "1.25rem" }}>Importante</h2>
-      <ul style={{ paddingLeft: "1.5rem", marginBottom: "1rem" }}>
-        <li style={{ marginBottom: "0.5rem" }}>Tu paciente individual puede empeorar aunque la mayoría gane.</li>
-        <li style={{ marginBottom: "0.5rem" }}>El host sigue la decisión más votada.</li>
-        <li style={{ marginBottom: "0.5rem" }}>Tus decisiones afectan: vida, fiebre y complicaciones.</li>
-        <li style={{ color: "#f87171" }}>→ Completar la barra de fiebre o de complicaciones equivale a perder 1p de vida.</li>
-      </ul>
-
-      <hr style={{ borderColor: "rgba(255,255,255,0.1)", margin: "1.5rem 0" }}/>
-
-      <h2 style={{ color: "#ef4444", fontSize: "1.25rem" }}>Pierdes si:</h2>
-      <ul style={{ paddingLeft: "1.5rem", marginBottom: "1rem" }}>
-        <li style={{ marginBottom: "0.5rem" }}>La vida llega a 0.</li>
-        <li style={{ marginBottom: "0.5rem" }}>O si fiebre/complicaciones llegan a 3 las veces suficientes para que pierdas todos los puntos de vida.</li>
-      </ul>
-    </div>
-  );
 
   if (sessionStatus === "instructions") {
     if (isHostView) {
@@ -1298,8 +1264,15 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
             <motion.section className="hostCard" style={{ width: "100%", maxWidth: "800px", margin: "auto", background: "rgba(6, 16, 24, 0.9)", backdropFilter: "blur(12px)", borderRadius: "24px", border: "1px solid rgba(123, 255, 138, 0.2)", padding: "2rem" }} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <InstructionsContent />
             </motion.section>
+            
+            <ClinicalHistoryModal
+              isOpen={isHistoryModalOpen}
+              onClose={() => setIsHistoryModalOpen(false)}
+              eventLog={state.eventLog}
+            />
+
             <motion.section className="hostCard" style={{ width: "100%", maxWidth: "800px", margin: "auto" }} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <HostControls session={{ ...hostSession!, status: sessionStatus, game_state: state, turn_phase: sessionPhase, current_turn: state.turnIndex }} />
+              <HostControls session={{ ...hostSession!, status: sessionStatus, game_state: state, turn_phase: sessionPhase, current_turn: state.turnIndex }} onOpenHistory={() => setIsHistoryModalOpen(true)} />
             </motion.section>
           </main>
         </div>
@@ -1325,7 +1298,7 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
           <div className="backgroundGrid" />
           <main className="hostFrame" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", padding: "1rem" }}>
             <motion.section className="hostCard" style={{ width: "100%", maxWidth: "800px", margin: "auto" }} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <HostControls session={{ ...hostSession, status: sessionStatus, game_state: state, turn_phase: sessionPhase, current_turn: state.turnIndex }} />
+              <HostControls session={{ ...hostSession, status: sessionStatus, game_state: state, turn_phase: sessionPhase, current_turn: state.turnIndex }} onOpenHistory={() => setIsHistoryModalOpen(true)} />
             </motion.section>
           </main>
         </div>
@@ -1403,39 +1376,7 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
           </div>
 
           <div className="patientCenter" style={{ display: "flex", flexDirection: "column", gap: "16px", padding: "16px" }}>
-            <div className="hudPanel horizontal" style={{ display: "flex", flexWrap: "wrap", flexDirection: "row", gap: "8px", justifyContent: "space-between", background: "rgba(2, 8, 12, 0.76)", padding: "12px", borderRadius: "18px", border: "1px solid rgba(45, 212, 191, 0.22)", zIndex: 10 }}>
-              <div style={{ flex: "1 1 calc(50% - 4px)", minWidth: "100px" }}><StatBar icon="❤️" label="VIDA" value={state.stats.life} max={4} /></div>
-              <div style={{ flex: "1 1 calc(50% - 4px)", minWidth: "100px" }}><StatBar icon="🌡️" label="FIEBRE" value={state.stats.fever} max={3} /></div>
-              <div style={{ flex: "1 1 100%" }}><StatBar icon="⚠️" label="COMPLIC" value={state.stats.complications} max={3} /></div>
-            </div>
-
-            <div className="patientStage__body" style={{ flex: 1, position: "relative", minHeight: "350px", borderRadius: "18px", overflow: "hidden", border: "1px solid rgba(123, 255, 138, 0.04)", background: "radial-gradient(circle at center, rgba(123, 255, 138, 0.1), transparent 48%), linear-gradient(180deg, rgba(5, 10, 15, 0.7), rgba(3, 7, 10, 0.82))" }}>
-              {contagionActive && (
-                <div className="contagionBackdrop" style={{ opacity: contagionOpacity, position: "absolute", inset: 0, zIndex: 1, pointerEvents: "none" }}>
-                  <span className="contagionSilhouette contagionSilhouette--one" />
-                  <span className="contagionSilhouette contagionSilhouette--two" />
-                  <span className="contagionSilhouette contagionSilhouette--three" />
-                </div>
-              )}
-              <PatientIllustration state={state} />
-            </div>
-
-            <div className="vitalMonitor" style={{ width: "100%", position: "relative", zIndex: 10 }}>
-              <div className="monitorHeader">
-                <span>Monitor de cabecera</span>
-                <strong>{state.visualState.replace("respiratory distress", "distress")}</strong>
-              </div>
-
-              <div className="monitorWave" />
-
-              <div className="vitalRows" style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "6px" }}>
-                <VitalPill label="FC" value={`${state.vitals.hr}`} tone={state.vitals.hr > 115 ? "danger" : "neutral"} />
-                <VitalPill label="FR" value={`${state.vitals.rr}`} tone={state.vitals.rr >= 28 ? "danger" : "neutral"} />
-                <VitalPill label="SpO₂" value={`${state.vitals.spo2}%`} tone={state.vitals.spo2 <= 92 ? "danger" : "neutral"} />
-                <VitalPill label="TEMP" value={`${state.vitals.temperature.toFixed(1)}`} tone={state.vitals.temperature >= 39 ? "warning" : "neutral"} />
-                <VitalPill label="TA" value={state.vitals.bp} tone="neutral" />
-              </div>
-            </div>
+            <VitalMonitor state={state} />
           </div>
 
           <div className="currentStateStrip">
@@ -1446,18 +1387,24 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
 
         <section className="medicalPocket" style={{ position: "relative" }}>
           {isHostView ? (
-            <HostControls session={{ ...hostSession, status: sessionStatus, game_state: state, turn_phase: sessionPhase, current_turn: state.turnIndex }} />
+            <HostControls session={{ ...hostSession, status: sessionStatus, game_state: state, turn_phase: sessionPhase, current_turn: state.turnIndex }} onOpenHistory={() => setIsHistoryModalOpen(true)} />
           ) : (
             <>
               {sessionPhase === "review" ? (
-                <div className="medicalPocket__title">
-                  <span>✅</span>
-                  <h2>Respuesta Ideal del Turno</h2>
+                <div className="medicalPocket__title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span>✅</span>
+                    <h2>Respuesta Ideal del Turno</h2>
+                  </div>
+                  <button onClick={() => setIsHistoryModalOpen(true)} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "8px", padding: "6px 12px", color: "#fff", cursor: "pointer", fontSize: "0.9rem" }}>Ver Expediente</button>
                 </div>
               ) : (
-                <div className="medicalPocket__title">
-                  <span>🧰</span>
-                  <h2>Bolsillo médico</h2>
+                <div className="medicalPocket__title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span>🧰</span>
+                    <h2>Bolsillo médico</h2>
+                  </div>
+                  <button onClick={() => setIsHistoryModalOpen(true)} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "8px", padding: "6px 12px", color: "#fff", cursor: "pointer", fontSize: "0.9rem" }}>Ver Expediente</button>
                 </div>
               )}
 
@@ -1475,6 +1422,11 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
                     <h3 style={{ color: "#4ade80", marginBottom: "0.5rem", fontSize: "1.5rem" }}>
                       {waitingForHost ? "Decisión enviada" : "Votaciones cerradas"}
                     </h3>
+                    {sessionCode && !isHostView && (
+                      <p style={{ color: "#fbbf24", fontWeight: "bold", marginBottom: "1rem", fontSize: "1.2rem", background: "rgba(251, 191, 36, 0.1)", padding: "0.5rem", borderRadius: "8px" }}>
+                        {voteCount} / {playerCount} médicos han enviado su diagnóstico...
+                      </p>
+                    )}
                     <p style={{ color: "#d9ffe8", fontSize: "1.1rem", marginBottom: "1rem", lineHeight: "1.5" }}>
                       {renderNarrative(previewText)}
                     </p>
@@ -1720,6 +1672,11 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
                 >
                   {waitingForHost ? "ESPERANDO AL HOST..." : "APLICAR DECISIÓN →"}
                 </motion.button>
+                {waitingForHost && (
+                  <div style={{ textAlign: "center", marginTop: "12px", color: "#9ca3af", fontSize: "0.9rem" }}>
+                    <span>{voteCount} de {playerCount} médicos han diagnosticado</span>
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -1744,6 +1701,11 @@ function GameModeApp({ sessionCode, player, hostSession, isHostView }: { session
               </div>
             ))}
           </div>
+          <ClinicalHistoryModal
+            isOpen={isHistoryModalOpen}
+            onClose={() => setIsHistoryModalOpen(false)}
+            eventLog={state.eventLog}
+          />
         </section>
       </main>
     </motion.div>
@@ -1780,6 +1742,16 @@ export default function App() {
       };
     }
   }, [mode, sessionCode]);
+
+  // Initialize audio on first click
+  useEffect(() => {
+    const initAudio = () => {
+      audio.init();
+      document.removeEventListener("click", initAudio);
+    };
+    document.addEventListener("click", initAudio);
+    return () => document.removeEventListener("click", initAudio);
+  }, []);
 
   if (mode === "host") {
     if (hostSession) {
