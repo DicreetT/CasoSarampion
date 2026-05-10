@@ -638,17 +638,11 @@ const applyTurnPressure = (state: GameState) => {
   const vitals = { ...next.vitals };
   const turn = getTurn(next).id;
 
-  if (turn === 0) {
-    stats.fever = clamp(stats.fever + 2, 0, MAX_FEVER);
-    vitals.temperature = Math.max(vitals.temperature, 39.5);
-  }
-
   if (turn === 1) {
     if (next.flags.paracetamolGiven) {
       vitals.temperature = Math.max(37.8, vitals.temperature - 0.2);
     } else {
-      stats.fever = clamp(stats.fever + 1, 0, MAX_FEVER);
-      stats.life = clamp(stats.life - 1, 0, 4);
+      stats.fever = clamp(stats.fever + 2, 0, MAX_FEVER);
       vitals.temperature = Math.max(vitals.temperature, 39.5);
     }
 
