@@ -157,6 +157,39 @@ export const HostControls = ({ session, onOpenHistory }: { session: any; onOpenH
     }
   };
 
+  const reviveHostPatient = async () => {
+    setAdvancing(true);
+    setError(null);
+    try {
+      const revivedState: GameState = {
+        ...gameState,
+        finished: false,
+        outcome: null,
+        stats: {
+          ...gameState.stats,
+          life: 4,
+          fever: 2,
+          complications: 2,
+        },
+        narrative: "El host revivió al paciente para continuar la sesión.",
+        eventLog: [...(gameState.eventLog || []).slice(-4), "Revivido por host: vida 4/4, fiebre 2/3, complicaciones 2/3."],
+      };
+
+      const { error: updateError } = await supabase!
+        .from("game_sessions")
+        .update({
+          game_state: revivedState,
+        })
+        .eq("code", session.code);
+
+      if (updateError) throw updateError;
+    } catch (e: any) {
+      setError(e?.message || "No se pudo revivir al paciente host.");
+    } finally {
+      setAdvancing(false);
+    }
+  };
+
   const startInstructions = async () => {
     setAdvancing(true);
     setError(null);
@@ -264,6 +297,17 @@ export const HostControls = ({ session, onOpenHistory }: { session: any; onOpenH
 
       <div className="hostCard__actions" style={{ marginTop: "auto" }}>
         {error && <div className="hostError">{error}</div>}
+
+        <motion.button
+          type="button"
+          className="hostButton"
+          onClick={reviveHostPatient}
+          disabled={advancing}
+          whileTap={{ scale: 0.985 }}
+          style={{ marginBottom: "0.75rem", background: "linear-gradient(90deg, #22c55e, #0ea5e9)" }}
+        >
+          {advancing ? "Procesando..." : "Revivir paciente"}
+        </motion.button>
         
         {session.status === "lobby" ? (
           <motion.button type="button" className="hostButton" onClick={startInstructions} disabled={advancing} whileTap={{ scale: 0.985 }}>
